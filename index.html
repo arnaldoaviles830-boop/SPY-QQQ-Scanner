@@ -281,11 +281,25 @@
   const STOOQ = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}.us&i=d`;
   // Proxies used only as a fallback so the Yahoo Finance request can reach the
   // browser even though Yahoo's endpoint does not send CORS headers itself.
+  // Ordered by current real-world reliability for anonymous/free traffic
+  // (corsproxy.io now restricts its free tier mostly to localhost, so it's
+  // kept only as a last resort; codetabs and allorigins tend to work best
+  // for a page hosted anywhere).
   const CORS_PROXIES = [
     url => url,                                                          // direct (works in some environments/extensions)
-    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
     url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`,
   ];
+  const FETCH_TIMEOUT_MS = 8000;
+
+  function fetchWithTimeout(url, opts){
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
+    return fetch(url, Object.assign({}, opts, {signal: controller.signal}))
+      .finally(()=>clearTimeout(t));
+  }
   const state = {
     current: 'SPY',
     data: { SPY: null, QQQ: null },   // {closes:[...], source:string}
@@ -573,7 +587,7 @@
     for(const url of urls){
       for(const wrap of CORS_PROXIES){
         try{
-          const resp = await fetch(wrap(url), {cache:'no-store'});
+          const resp = await fetchWithTimeout(wrap(url), {cache:'no-store'});
           if(!resp.ok) throw new Error('HTTP '+resp.status);
           const json = await resp.json();
           const closes = parseYahooJSON(json);
@@ -586,7 +600,7 @@
 
   async function tryStooq(sym){
     try{
-      const resp = await fetch(STOOQ(sym), {cache:'no-store'});
+      const resp = await fetchWithTimeout(STOOQ(sym), {cache:'no-store'});
       if(!resp.ok) throw new Error('HTTP '+resp.status);
       const text = await resp.text();
       const closes = parseStooqCSV(text);
@@ -625,7 +639,10 @@
     const okQqq = await fetchSymbol('QQQ');
     btn.disabled = false; btn.textContent = '↻ Actualizar datos';
     if(okSpy || okQqq){
-      setStatus('Datos actualizados desde stooq.com.', 'ok');
+      const sources = [state.data.SPY && state.data.SPY.source, state.data.QQQ && state.data.QQQ.source]
+        .filter(Boolean);
+      const uniqueSources = [...new Set(sources)].join(' / ');
+      setStatus('Datos actualizados: ' + uniqueSources + '.', 'ok');
       document.getElementById('updatedText').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
     }
     render(state.current);
