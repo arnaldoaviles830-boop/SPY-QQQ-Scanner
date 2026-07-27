@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Scanner RSI — Credit Spreads SPY/QQQ</title>
+<style>
+  :root{
+    --bg: #0A0D12;
+    --panel: #10141B;
+    --panel-2: #141922;
+    --border: #1E242D;
+    --text: #E7ECF2;
+    --muted: #7C8794;
+    --spy: #E8B339;
+    --qqq: #4FA3F7;
+    --bull: #35B37E;
+    --bear: #E85D5D;
+    --neutral: #8B93A1;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    min-height:100vh; padding:0;
+  }
+  .app{ max-width:920px; margin:0 auto; padding:18px 16px 40px; }
+
+  /* Ticker header */
+  .ticker-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:18px;
+    flex-wrap:wrap; gap:10px;
+  }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--bull); box-shadow:0 0 8px var(--bull); }
+  .brand h1{
+    font-family:var(--sans); font-weight:700; font-size:15px; letter-spacing:.14em;
+    text-transform:uppercase; margin:0; color:var(--text);
+  }
+  .brand span.sub{ font-size:11px; color:var(--muted); letter-spacing:.05em; }
+
+  .symbol-toggle{ display:flex; gap:6px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:3px; }
+  .symbol-toggle button{
+    font-family:var(--mono); font-weight:700; font-size:13px; letter-spacing:.05em;
+    padding:7px 16px; border-radius:6px; border:none; background:transparent; color:var(--muted);
+    cursor:pointer; transition:all .15s ease;
+  }
+  .symbol-toggle button.active[data-sym="SPY"]{ background:rgba(232,179,57,.14); color:var(--spy); }
+  .symbol-toggle button.active[data-sym="QQQ"]{ background:rgba(79,163,247,.14); color:var(--qqq); }
+
+  .updated-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:12px; color:var(--muted); flex-wrap:wrap; gap:8px;}
+  .btn{
+    font-family:var(--sans); font-size:12.5px; font-weight:600; letter-spacing:.02em;
+    padding:8px 14px; border-radius:7px; border:1px solid var(--border); background:var(--panel-2);
+    color:var(--text); cursor:pointer; transition:background .15s ease;
+  }
+  .btn:hover{ background:#1a2029; }
+  .btn.primary{ border-color:transparent; background:var(--bull); color:#04140C; }
+  .btn.primary:hover{ background:#2fa373; }
+  .btn:disabled{ opacity:.5; cursor:wait; }
+
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:680px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px;
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted);
+    margin:0 0 12px 0; font-weight:700;
+  }
+
+  .price-row{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .price{ font-family:var(--mono); font-size:34px; font-weight:600; letter-spacing:-.01em; }
+  .chg{ font-family:var(--mono); font-size:15px; font-weight:600; padding:2px 8px; border-radius:6px; }
+  .chg.up{ color:var(--bull); background:rgba(53,179,126,.12); }
+  .chg.down{ color:var(--bear); background:rgba(232,93,93,.12); }
+  .chg.flat{ color:var(--neutral); background:rgba(139,147,161,.12); }
+  .sub-metrics{ display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; }
+  .sub-metrics div{ font-size:12px; color:var(--muted); }
+  .sub-metrics b{ font-family:var(--mono); color:var(--text); font-size:13px; display:block; margin-top:2px; }
+
+  .spark{ margin-top:14px; }
+
+  .trend-badge{
+    display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:20px;
+    font-family:var(--mono); font-weight:700; font-size:13px; letter-spacing:.02em;
+  }
+  .trend-badge.bull{ background:rgba(53,179,126,.12); color:var(--bull); }
+  .trend-badge.bear{ background:rgba(232,93,93,.12); color:var(--bear); }
+  .trend-badge.neutral{ background:rgba(139,147,161,.12); color:var(--neutral); }
+  .trend-rows{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .trend-line{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); border-bottom:1px dashed var(--border); padding-bottom:6px; }
+  .trend-line b{ font-family:var(--mono); color:var(--text); }
+
+  .rsi-wrap{ display:flex; flex-direction:column; align-items:center; }
+  .rsi-value{ font-family:var(--mono); font-size:30px; font-weight:700; margin-top:-52px; }
+  .rsi-zone{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+
+  .suggestion-card{ grid-column:1 / -1; border:1px solid var(--border); border-radius:12px; padding:20px 22px; }
+  .strategy-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px; }
+  .strategy-name{ font-family:var(--mono); font-size:22px; font-weight:700; }
+  .strategy-name.put{ color:var(--bull); }
+  .strategy-name.call{ color:var(--bear); }
+  .strategy-name.wait{ color:var(--neutral); }
+  .dte-select{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .dte-select select{
+    font-family:var(--mono); background:var(--panel-2); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:5px 8px; font-size:13px;
+  }
+  .strikes-row{ display:flex; gap:24px; margin:14px 0; flex-wrap:wrap; }
+  .strike-box{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px; padding:10px 16px; min-width:120px; }
+  .strike-box .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .strike-box .val{ font-family:var(--mono); font-size:19px; font-weight:700; margin-top:3px; }
+  .strike-box.exp .val{ font-size:14px; }
+  .rationale{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .rationale ul{ margin:8px 0 0 0; padding-left:18px; font-size:12.5px; color:var(--muted); line-height:1.7; }
+  .rationale ul b{ color:var(--text); }
+
+  .manual-toggle{ font-size:11.5px; color:var(--muted); cursor:pointer; text-decoration:underline; text-underline-offset:2px; background:none; border:none; padding:0; font-family:var(--sans); }
+  .manual-panel{ display:none; margin-top:10px; }
+  .manual-panel.open{ display:block; }
+  .manual-panel textarea{
+    width:100%; height:90px; background:var(--panel-2); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; font-family:var(--mono); font-size:12px; padding:10px; resize:vertical;
+  }
+  .manual-panel p{ font-size:11px; color:var(--muted); margin:6px 0; }
+  .status-msg{ font-size:12px; color:var(--muted); margin-top:6px; min-height:16px; }
+  .status-msg.err{ color:var(--bear); }
+  .status-msg.ok{ color:var(--bull); }
+
+  .disclaimer{
+    margin-top:18px; font-size:11px; color:var(--muted); line-height:1.6; border-top:1px solid var(--border);
+    padding-top:14px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="ticker-bar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Scanner RSI · Credit Spreads</h1>
+      <span class="sub">$1 de ancho · 0–5 DTE · Lun–Vie</span>
+    </div>
+    <div class="symbol-toggle">
+      <button data-sym="SPY" class="active">SPY</button>
+      <button data-sym="QQQ">QQQ</button>
+    </div>
+  </div>
+
+  <div class="updated-row">
+    <span id="updatedText">Sin datos todavía. Conectando con Yahoo Finance...</span>
+    <button class="btn primary" id="refreshBtn">↻ Actualizar datos</button>
+  </div>
+  <div style="margin-bottom:14px;">
+    <button class="manual-toggle" id="manualToggle">Ingresar / corregir precios manualmente</button>
+    <div class="manual-panel" id="manualPanel">
+      <p>Pega precios de cierre diarios, uno por línea, del más antiguo al más reciente (mínimo 30 para calcular tendencia y RSI). Ej: solo el número, o "fecha,cierre".</p>
+      <textarea id="manualInput" placeholder="640.12&#10;641.03&#10;638.77&#10;..."></textarea>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button class="btn" id="applyManual">Usar estos datos</button>
+        <button class="btn" id="clearManual">Limpiar</button>
+      </div>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Precio &amp; Movimiento</h2>
+      <div class="price-row">
+        <span class="price" id="priceVal">—</span>
+        <span class="chg flat" id="chgVal">—</span>
+      </div>
+      <div class="sub-metrics">
+        <div>Cambio 5 sesiones <b id="chg5">—</b></div>
+        <div>Máx / Mín (14 ses.) <b id="hi14lo14">—</b></div>
+        <div>Volatilidad diaria (σ) <b id="volVal">—</b></div>
+      </div>
+      <div class="spark" id="sparkWrap"></div>
+    </div>
+
+    <div class="card">
+      <h2>Tendencia</h2>
+      <span class="trend-badge neutral" id="trendBadge">— sin datos —</span>
+      <div class="trend-rows">
+        <div class="trend-line"><span>Precio actual</span><b id="trendPrice">—</b></div>
+        <div class="trend-line"><span>Media móvil 10 sesiones</span><b id="sma10">—</b></div>
+        <div class="trend-line"><span>Media móvil 30 sesiones</span><b id="sma30">—</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>RSI (14)</h2>
+      <div class="rsi-wrap">
+        <div id="gaugeWrap"></div>
+        <div class="rsi-value" id="rsiValue">—</div>
+        <div class="rsi-zone" id="rsiZone">sin datos</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Resumen rápido</h2>
+      <div class="trend-rows">
+        <div class="trend-line"><span>Símbolo</span><b id="sumSym">SPY</b></div>
+        <div class="trend-line"><span>Sesiones cargadas</span><b id="sumBars">0</b></div>
+        <div class="trend-line"><span>Fuente</span><b id="sumSource">—</b></div>
+        <div class="trend-line"><span>Día</span><b id="sumDay">—</b></div>
+      </div>
+    </div>
+
+    <div class="suggestion-card card">
+      <h2>Sugerencia de Operación</h2>
+      <div class="strategy-head">
+        <span class="strategy-name wait" id="strategyName">Sin datos suficientes</span>
+        <div class="dte-select">
+          <label for="dteSelect">Días a expiración (DTE)</label>
+          <select id="dteSelect">
+            <option value="0">0 DTE</option>
+            <option value="1">1 DTE</option>
+            <option value="2">2 DTE</option>
+            <option value="3">3 DTE</option>
+            <option value="4" selected>4 DTE</option>
+            <option value="5">5 DTE</option>
+          </select>
+        </div>
+      </div>
+      <div class="strikes-row">
+        <div class="strike-box"><div class="lbl">Strike corto (vender)</div><div class="val" id="shortStrike">—</div></div>
+        <div class="strike-box"><div class="lbl">Strike largo (comprar)</div><div class="val" id="longStrike">—</div></div>
+        <div class="strike-box"><div class="lbl">Ancho</div><div class="val">$1.00</div></div>
+        <div class="strike-box exp"><div class="lbl">Expiración sugerida</div><div class="val" id="expDate">—</div></div>
+      </div>
+      <div class="rationale">
+        <b>Razonamiento</b>
+        <ul id="rationaleList"><li>Carga datos para ver el análisis.</li></ul>
+      </div>
+      <div class="disclaimer">
+        Herramienta educativa basada en reglas técnicas simples (RSI y medias móviles). No es asesoría financiera ni una recomendación de inversión.
+        Los spreads de crédito 0–5 DTE tienen riesgo elevado y pueden generar pérdidas rápidas; el ancho de $1 limita pero no elimina el riesgo por contrato.
+        Verifica siempre precios y cadena de opciones reales en tu bróker antes de operar.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const YAHOO = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=3mo&interval=1d`;
+  const YAHOO_ALT = sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?range=3mo&interval=1d`;
+  const STOOQ = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}.us&i=d`;
+  // Proxies used only as a fallback so the Yahoo Finance request can reach the
+  // browser even though Yahoo's endpoint does not send CORS headers itself.
+  const CORS_PROXIES = [
+    url => url,                                                          // direct (works in some environments/extensions)
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+  const state = {
+    current: 'SPY',
+    data: { SPY: null, QQQ: null },   // {closes:[...], source:string}
+  };
+
+  // ---------- math helpers ----------
+  function sma(arr, period){
+    if(arr.length < period) return null;
+    const slice = arr.slice(arr.length-period);
+    return slice.reduce((a,b)=>a+b,0)/period;
+  }
+  function stddevPct(arr, period){
+    if(arr.length < period+1) return null;
+    const rets = [];
+    for(let i=arr.length-period; i<arr.length; i++){
+      rets.push((arr[i]-arr[i-1])/arr[i-1]);
+    }
+    const mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+    const variance = rets.reduce((a,b)=>a+(b-mean)*(b-mean),0)/rets.length;
+    return Math.sqrt(variance);
+  }
+  function rsiWilder(arr, period){
+    if(arr.length < period+1) return null;
+    let gains=0, losses=0;
+    for(let i=arr.length-period; i<arr.length; i++){
+      const diff = arr[i]-arr[i-1];
+      if(diff>=0) gains+=diff; else losses-=diff;
+    }
+    let avgGain = gains/period, avgLoss = losses/period;
+    // refine with Wilder smoothing over the rest of the series for stability
+    const start = Math.max(1, arr.length-period*4);
+    let ag = null, al = null;
+    for(let i=start; i<arr.length; i++){
+      const diff = arr[i]-arr[i-1];
+      const g = diff>0?diff:0, l = diff<0?-diff:0;
+      if(ag===null){ ag=g; al=l; }
+      else{ ag = (ag*(period-1)+g)/period; al = (al*(period-1)+l)/period; }
+    }
+    if(al===0) return 100;
+    const rs = ag/al;
+    return 100 - (100/(1+rs));
+  }
+  function addTradingDays(base, n){
+    const d = new Date(base);
+    let added = 0;
+    if(n===0) return d;
+    while(added < n){
+      d.setDate(d.getDate()+1);
+      const day = d.getDay();
+      if(day!==0 && day!==6) added++;
+    }
+    return d;
+  }
+  function fmtDate(d){
+    return d.toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
+  }
+  function fmtMoney(v){ return '$' + v.toFixed(2); }
+
+  // ---------- sparkline ----------
+  function renderSpark(closes){
+    const w=280,h=54,pad=4;
+    const recent = closes.slice(-20);
+    const min = Math.min(...recent), max = Math.max(...recent);
+    const range = (max-min)||1;
+    const step = (w-pad*2)/(recent.length-1);
+    const pts = recent.map((c,i)=>{
+      const x = pad + i*step;
+      const y = pad + (1-(c-min)/range)*(h-pad*2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const up = recent[recent.length-1] >= recent[0];
+    const color = up ? 'var(--bull)' : 'var(--bear)';
+    document.getElementById('sparkWrap').innerHTML =
+      `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>`;
+  }
+
+  // ---------- RSI gauge ----------
+  function renderGauge(rsi){
+    const w=200,h=120,cx=100,cy=100,r=80;
+    function pt(angleDeg){
+      const a = (Math.PI/180)*angleDeg;
+      return [cx + r*Math.cos(a), cy - r*Math.sin(a)];
+    }
+    // zones: 0-30 oversold (bull-ish signal color), 30-70 neutral, 70-100 overbought
+    function arc(a0,a1,color){
+      const [x0,y0]=pt(a0), [x1,y1]=pt(a1);
+      const large = (a0-a1) > 180 ? 1:0;
+      return `<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 0 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${color}" stroke-width="14" fill="none" stroke-linecap="round"/>`;
+    }
+    // map value 0-100 to angle 180(left,val0) -> 0(right,val100)
+    const angFor = v => 180 - (v/100)*180;
+    let svg = `<svg width="${w}" height="${h+10}" viewBox="0 0 ${w} ${h+10}">`;
+    svg += arc(angFor(0), angFor(30), 'var(--bull)');
+    svg += arc(angFor(30), angFor(70), 'var(--neutral)');
+    svg += arc(angFor(70), angFor(100), 'var(--bear)');
+    if(rsi!==null){
+      const a = angFor(rsi);
+      const [nx,ny] = pt(a);
+      svg += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/>`;
+      svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--text)"/>`;
+    }
+    svg += `</svg>`;
+    document.getElementById('gaugeWrap').innerHTML = svg;
+  }
+
+  // ---------- core render ----------
+  function render(sym){
+    const d = state.data[sym];
+    document.getElementById('sumSym').textContent = sym;
+    document.getElementById('sumDay').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long', day:'2-digit', month:'long'});
+
+    if(!d || !d.closes || d.closes.length < 20){
+      document.getElementById('priceVal').textContent = '—';
+      document.getElementById('chgVal').textContent = '—';
+      document.getElementById('sumBars').textContent = d? d.closes.length : 0;
+      document.getElementById('sumSource').textContent = d? d.source : '—';
+      document.getElementById('rsiValue').textContent = '—';
+      document.getElementById('rsiZone').textContent = 'sin datos';
+      renderGauge(null);
+      document.getElementById('trendBadge').className = 'trend-badge neutral';
+      document.getElementById('trendBadge').textContent = 'Sin datos suficientes';
+      document.getElementById('strategyName').textContent = 'Sin datos suficientes';
+      document.getElementById('strategyName').className = 'strategy-name wait';
+      document.getElementById('rationaleList').innerHTML = '<li>Carga al menos 30 cierres diarios (auto-actualizar o manual) para generar una sugerencia.</li>';
+      document.getElementById('shortStrike').textContent = '—';
+      document.getElementById('longStrike').textContent = '—';
+      document.getElementById('expDate').textContent = '—';
+      return;
+    }
+
+    const closes = d.closes;
+    const last = closes[closes.length-1];
+    const prev = closes[closes.length-2];
+    const chg = last - prev;
+    const chgPct = (chg/prev)*100;
+    const last5 = closes[closes.length-6] !== undefined ? closes[closes.length-6] : closes[0];
+    const chg5Pct = ((last-last5)/last5)*100;
+    const recent14 = closes.slice(-14);
+    const hi14 = Math.max(...recent14), lo14 = Math.min(...recent14);
+    const vol = stddevPct(closes,14);
+
+    document.getElementById('priceVal').textContent = fmtMoney(last);
+    const chgEl = document.getElementById('chgVal');
+    chgEl.textContent = `${chg>=0?'▲':'▼'} ${fmtMoney(Math.abs(chg))} (${chgPct.toFixed(2)}%)`;
+    chgEl.className = 'chg ' + (chg>0.005?'up':chg<-0.005?'down':'flat');
+    document.getElementById('chg5').textContent = (chg5Pct>=0?'+':'') + chg5Pct.toFixed(2) + '%';
+    document.getElementById('hi14lo14').textContent = `${fmtMoney(hi14)} / ${fmtMoney(lo14)}`;
+    document.getElementById('volVal').textContent = vol!==null ? (vol*100).toFixed(2)+'%' : '—';
+    document.getElementById('sumBars').textContent = closes.length;
+    document.getElementById('sumSource').textContent = d.source;
+
+    renderSpark(closes);
+
+    const s10 = sma(closes,10), s30 = sma(closes,30);
+    document.getElementById('trendPrice').textContent = fmtMoney(last);
+    document.getElementById('sma10').textContent = s10!==null ? fmtMoney(s10) : '—';
+    document.getElementById('sma30').textContent = s30!==null ? fmtMoney(s30) : '—';
+
+    let trend = 'neutral', trendLabel = 'Neutral / Mixta';
+    if(s10!==null && s30!==null){
+      if(last > s10 && s10 > s30){ trend='bull'; trendLabel='Alcista'; }
+      else if(last < s10 && s10 < s30){ trend='bear'; trendLabel='Bajista'; }
+    }
+    const tb = document.getElementById('trendBadge');
+    tb.className = 'trend-badge ' + trend;
+    tb.textContent = (trend==='bull'?'▲ ':trend==='bear'?'▼ ':'● ') + trendLabel;
+
+    const rsi = rsiWilder(closes,14);
+    document.getElementById('rsiValue').textContent = rsi!==null ? rsi.toFixed(1) : '—';
+    let zone = 'neutral';
+    if(rsi!==null){
+      if(rsi<=30) zone='sobrevendido';
+      else if(rsi>=70) zone='sobrecomprado';
+      else zone='rango neutral';
+    }
+    document.getElementById('rsiZone').textContent = zone;
+    renderGauge(rsi);
+
+    // ---------- suggestion engine ----------
+    const dte = parseInt(document.getElementById('dteSelect').value,10);
+    const expD = addTradingDays(new Date(), dte);
+    document.getElementById('expDate').textContent = fmtDate(expD) + (dte===0?' (hoy)':'');
+
+    let strategy = 'wait', reasons = [];
+    reasons.push(`RSI(14) = <b>${rsi.toFixed(1)}</b> → ${zone}.`);
+    reasons.push(`Tendencia (SMA10 vs SMA30) → <b>${trendLabel}</b>.`);
+    reasons.push(`Movimiento del día: <b>${chgPct.toFixed(2)}%</b>, últimas 5 sesiones: <b>${chg5Pct.toFixed(2)}%</b>.`);
+
+    if(rsi<=30){
+      strategy='put';
+      reasons.push('RSI en zona de sobreventa → sesgo hacia rebote de corto plazo, se favorece <b>vender un Put Credit Spread</b> por debajo del precio.');
+    } else if(rsi>=70){
+      strategy='call';
+      reasons.push('RSI en zona de sobrecompra → sesgo hacia pausa/retroceso, se favorece <b>vender un Call Credit Spread</b> por encima del precio.');
+    } else if(trend==='bull' && rsi>=50){
+      strategy='put';
+      reasons.push('Tendencia alcista con RSI por encima de 50 → continuación, se favorece <b>vender un Put Credit Spread</b> (vender caídas).');
+    } else if(trend==='bear' && rsi<=50){
+      strategy='call';
+      reasons.push('Tendencia bajista con RSI por debajo de 50 → continuación, se favorece <b>vender un Call Credit Spread</b> (vender rebotes).');
+    } else {
+      strategy='wait';
+      reasons.push('Sin sesgo claro entre tendencia y RSI → se sugiere <b>esperar</b> una señal más definida antes de abrir posición.');
+    }
+
+    const nameEl = document.getElementById('strategyName');
+    if(strategy==='put'){ nameEl.textContent='Put Credit Spread'; nameEl.className='strategy-name put'; }
+    else if(strategy==='call'){ nameEl.textContent='Call Credit Spread'; nameEl.className='strategy-name call'; }
+    else { nameEl.textContent='Esperar / sin operación'; nameEl.className='strategy-name wait'; }
+
+    if(strategy==='wait' || vol===null){
+      document.getElementById('shortStrike').textContent = '—';
+      document.getElementById('longStrike').textContent = '—';
+    } else {
+      const offsetPct = Math.min(Math.max(vol*1.2, 0.004), 0.03);
+      const offsetDollars = last*offsetPct;
+      let shortStrike, longStrike;
+      if(strategy==='put'){
+        shortStrike = Math.round(last - offsetDollars);
+        longStrike = shortStrike - 1;
+      } else {
+        shortStrike = Math.round(last + offsetDollars);
+        longStrike = shortStrike + 1;
+      }
+      document.getElementById('shortStrike').textContent = fmtMoney(shortStrike);
+      document.getElementById('longStrike').textContent = fmtMoney(longStrike);
+      reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio (basado en volatilidad diaria reciente), redondeado a strikes enteros de $1.`);
+    }
+
+    document.getElementById('rationaleList').innerHTML = reasons.map(r=>`<li>${r}</li>`).join('');
+  }
+
+  // ---------- data loading ----------
+  function parseStooqCSV(text){
+    const lines = text.trim().split('\n').filter(Boolean);
+    const closes = [];
+    for(let i=1;i<lines.length;i++){ // skip header
+      const parts = lines[i].split(',');
+      if(parts.length>=5){
+        const c = parseFloat(parts[4]);
+        if(!isNaN(c)) closes.push(c);
+      }
+    }
+    return closes;
+  }
+
+  function parseYahooJSON(json){
+    const result = json && json.chart && json.chart.result && json.chart.result[0];
+    if(!result) throw new Error('formato inesperado');
+    const closesRaw = result.indicators.quote[0].close;
+    return closesRaw.filter(c => c !== null && c !== undefined);
+  }
+
+  async function tryYahoo(sym){
+    const urls = [YAHOO(sym), YAHOO_ALT(sym)];
+    for(const url of urls){
+      for(const wrap of CORS_PROXIES){
+        try{
+          const resp = await fetch(wrap(url), {cache:'no-store'});
+          if(!resp.ok) throw new Error('HTTP '+resp.status);
+          const json = await resp.json();
+          const closes = parseYahooJSON(json);
+          if(closes.length >= 20) return closes;
+        }catch(e){ /* try next proxy/url */ }
+      }
+    }
+    return null;
+  }
+
+  async function tryStooq(sym){
+    try{
+      const resp = await fetch(STOOQ(sym), {cache:'no-store'});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const text = await resp.text();
+      const closes = parseStooqCSV(text);
+      if(closes.length >= 20) return closes;
+    }catch(e){ /* fall through */ }
+    return null;
+  }
+
+  async function fetchSymbol(sym){
+    setStatus('Buscando datos de '+sym+' en Yahoo Finance...', '');
+    const yahooCloses = await tryYahoo(sym);
+    if(yahooCloses){
+      state.data[sym] = { closes: yahooCloses, source: 'Yahoo Finance (auto)' };
+      return true;
+    }
+    setStatus('Yahoo Finance no respondió para ' + sym + ', probando stooq.com...', '');
+    const stooqCloses = await tryStooq(sym);
+    if(stooqCloses){
+      state.data[sym] = { closes: stooqCloses, source: 'stooq.com (auto, respaldo)' };
+      return true;
+    }
+    setStatus('No se pudo auto-actualizar ' + sym + ' (bloqueo de red/CORS del navegador). Usa "Ingresar precios manualmente".', 'err');
+    return false;
+  }
+
+  function setStatus(msg, cls){
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = 'status-msg' + (cls?(' '+cls):'');
+  }
+
+  async function refreshAll(){
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true; btn.textContent = 'Actualizando…';
+    const okSpy = await fetchSymbol('SPY');
+    const okQqq = await fetchSymbol('QQQ');
+    btn.disabled = false; btn.textContent = '↻ Actualizar datos';
+    if(okSpy || okQqq){
+      setStatus('Datos actualizados desde stooq.com.', 'ok');
+      document.getElementById('updatedText').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
+    }
+    render(state.current);
+  }
+
+  // ---------- UI wiring ----------
+  document.querySelectorAll('.symbol-toggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('.symbol-toggle button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      state.current = b.dataset.sym;
+      render(state.current);
+    });
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+  document.getElementById('dteSelect').addEventListener('change', ()=>render(state.current));
+
+  document.getElementById('manualToggle').addEventListener('click', ()=>{
+    document.getElementById('manualPanel').classList.toggle('open');
+  });
+  document.getElementById('applyManual').addEventListener('click', ()=>{
+    const raw = document.getElementById('manualInput').value.trim();
+    if(!raw){ setStatus('Pega al menos 20-30 precios de cierre.', 'err'); return; }
+    const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+    const closes = lines.map(l=>{
+      const parts = l.split(',');
+      const num = parseFloat(parts[parts.length-1]);
+      return num;
+    }).filter(n=>!isNaN(n));
+    if(closes.length < 20){ setStatus('Se necesitan al menos 20 cierres válidos (ideal 30+).', 'err'); return; }
+    state.data[state.current] = { closes, source: 'entrada manual' };
+    setStatus('Datos manuales de ' + state.current + ' aplicados (' + closes.length + ' cierres).', 'ok');
+    document.getElementById('updatedText').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES') + ' (manual)';
+    render(state.current);
+  });
+  document.getElementById('clearManual').addEventListener('click', ()=>{
+    document.getElementById('manualInput').value='';
+  });
+
+  // initial paint + attempt auto-fetch
+  render(state.current);
+  refreshAll();
+})();
+</script>
+</body>
+</html>
