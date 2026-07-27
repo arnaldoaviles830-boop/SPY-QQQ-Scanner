@@ -179,6 +179,8 @@
         <div>Cambio 5 sesiones <b id="chg5">—</b></div>
         <div>Máx / Mín (14 ses.) <b id="hi14lo14">—</b></div>
         <div>Volatilidad diaria (σ) <b id="volVal">—</b></div>
+        <div>Vol. anualizada <b id="volAnn">—</b></div>
+        <div>HV Rank (1a) <b id="hvRankVal">—</b></div>
       </div>
       <div class="spark" id="sparkWrap"></div>
     </div>
@@ -209,6 +211,31 @@
         <div class="trend-line"><span>Sesiones cargadas</span><b id="sumBars">0</b></div>
         <div class="trend-line"><span>Fuente</span><b id="sumSource">—</b></div>
         <div class="trend-line"><span>Día</span><b id="sumDay">—</b></div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Volatilidad Comparada — SPY vs QQQ</h2>
+      <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:150px;">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--spy);font-weight:700;">SPY</div>
+          <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
+            σ diaria: <b id="cmpSpySigma">—</b><br>
+            σ anualizada: <b id="cmpSpyAnn">—</b><br>
+            HV Rank (1a): <b id="cmpSpyRank">—</b>
+          </div>
+        </div>
+        <div style="flex:1; min-width:150px;">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--qqq);font-weight:700;">QQQ</div>
+          <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
+            σ diaria: <b id="cmpQqqSigma">—</b><br>
+            σ anualizada: <b id="cmpQqqAnn">—</b><br>
+            HV Rank (1a): <b id="cmpQqqRank">—</b>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
+        HV Rank aproxima el concepto de IV Rank usando volatilidad histórica (realizada) de precios sobre ~1 año, ya que esta herramienta no tiene acceso a datos reales de volatilidad implícita de opciones. Es un proxy de referencia, no el IV Rank real que verías en tu bróker.
       </div>
     </div>
 
@@ -249,8 +276,8 @@
 
 <script>
 (function(){
-  const YAHOO = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=3mo&interval=1d`;
-  const YAHOO_ALT = sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?range=3mo&interval=1d`;
+  const YAHOO = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=1y&interval=1d`;
+  const YAHOO_ALT = sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?range=1y&interval=1d`;
   const STOOQ = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}.us&i=d`;
   // Proxies used only as a fallback so the Yahoo Finance request can reach the
   // browser even though Yahoo's endpoint does not send CORS headers itself.
@@ -316,6 +343,26 @@
     return d.toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
   }
   function fmtMoney(v){ return '$' + v.toFixed(2); }
+  function rollingVolSeries(closes, period){
+    // daily-vol (stddev of returns) computed on a trailing window, walked forward through history
+    const series = [];
+    for(let i=period+1; i<=closes.length; i++){
+      const v = stddevPct(closes.slice(0,i), period);
+      if(v!==null) series.push(v);
+    }
+    return series;
+  }
+  function hvRank(closes, period){
+    // percentile rank of current realized volatility vs its own trailing history —
+    // same formula as IV Rank, but built from historical price volatility instead of
+    // option-implied volatility (which this tool has no data source for).
+    const series = rollingVolSeries(closes, period);
+    if(series.length < 30) return null;
+    const current = series[series.length-1];
+    const min = Math.min(...series), max = Math.max(...series);
+    if(max===min) return 50;
+    return ((current-min)/(max-min))*100;
+  }
 
   // ---------- sparkline ----------
   function renderSpark(closes){
@@ -379,6 +426,8 @@
       document.getElementById('sumSource').textContent = d? d.source : '—';
       document.getElementById('rsiValue').textContent = '—';
       document.getElementById('rsiZone').textContent = 'sin datos';
+      document.getElementById('volAnn').textContent = '—';
+      document.getElementById('hvRankVal').textContent = '—';
       renderGauge(null);
       document.getElementById('trendBadge').className = 'trend-badge neutral';
       document.getElementById('trendBadge').textContent = 'Sin datos suficientes';
@@ -411,6 +460,11 @@
     document.getElementById('volVal').textContent = vol!==null ? (vol*100).toFixed(2)+'%' : '—';
     document.getElementById('sumBars').textContent = closes.length;
     document.getElementById('sumSource').textContent = d.source;
+
+    const volAnnualized = vol!==null ? vol*Math.sqrt(252) : null;
+    document.getElementById('volAnn').textContent = volAnnualized!==null ? (volAnnualized*100).toFixed(1)+'%' : '—';
+    const rank = hvRank(closes,14);
+    document.getElementById('hvRankVal').textContent = rank!==null ? rank.toFixed(0)+'%' : '—';
 
     renderSpark(closes);
 
