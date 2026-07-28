@@ -178,9 +178,9 @@
       <div class="sub-metrics">
         <div>Cambio 5 sesiones <b id="chg5">—</b></div>
         <div>Máx / Mín (14 ses.) <b id="hi14lo14">—</b></div>
-        <div>Volatilidad diaria (σ) <b id="volVal">—</b></div>
-        <div>Vol. anualizada <b id="volAnn">—</b></div>
-        <div>HV Rank (1a) <b id="hvRankVal">—</b></div>
+        <div>VIX (nivel actual) <b id="vixVal">—</b></div>
+        <div>Cambio VIX (1 ses.) <b id="vixChg">—</b></div>
+        <div>IV Rank (VIX, 1a) <b id="ivRankVal">—</b></div>
       </div>
       <div class="spark" id="sparkWrap"></div>
     </div>
@@ -215,27 +215,25 @@
     </div>
 
     <div class="card" style="grid-column:1 / -1;">
-      <h2>Volatilidad Comparada — SPY vs QQQ</h2>
+      <h2>VIX — Volatilidad Implícita del Mercado</h2>
       <div style="display:flex; gap:24px; flex-wrap:wrap;">
         <div style="flex:1; min-width:150px;">
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--spy);font-weight:700;">SPY</div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text);font-weight:700;">CBOE VIX</div>
           <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
-            σ diaria: <b id="cmpSpySigma">—</b><br>
-            σ anualizada: <b id="cmpSpyAnn">—</b><br>
-            HV Rank (1a): <b id="cmpSpyRank">—</b>
+            Nivel actual: <b id="cmpVixLevel">—</b><br>
+            Cambio (1 ses.): <b id="cmpVixChg">—</b><br>
+            Mín / Máx (1a): <b id="cmpVixRange">—</b>
           </div>
         </div>
         <div style="flex:1; min-width:150px;">
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--qqq);font-weight:700;">QQQ</div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;">IV Rank</div>
           <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
-            σ diaria: <b id="cmpQqqSigma">—</b><br>
-            σ anualizada: <b id="cmpQqqAnn">—</b><br>
-            HV Rank (1a): <b id="cmpQqqRank">—</b>
+            IV Rank (1a): <b id="cmpIvRank">—</b>
           </div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
-        HV Rank aproxima el concepto de IV Rank usando volatilidad histórica (realizada) de precios sobre ~1 año, ya que esta herramienta no tiene acceso a datos reales de volatilidad implícita de opciones. Es un proxy de referencia, no el IV Rank real que verías en tu bróker.
+        El IV Rank se calcula como la posición del VIX actual dentro de su rango mínimo–máximo de los últimos ~12 meses: (VIX actual − mín 1a) / (máx 1a − mín 1a) × 100. El VIX refleja la volatilidad implícita del S&amp;P 500 (opciones de SPX); se usa aquí como referencia de mercado tanto para SPY como para QQQ, ya que esta herramienta no tiene acceso a la cadena de opciones real de cada símbolo. Verifica el IV Rank específico de cada ticker en tu bróker antes de operar.
       </div>
     </div>
 
@@ -276,9 +274,10 @@
 
 <script>
 (function(){
-  const YAHOO = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=1y&interval=1d`;
-  const YAHOO_ALT = sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?range=1y&interval=1d`;
+  const YAHOO = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1y&interval=1d`;
+  const YAHOO_ALT = sym => `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1y&interval=1d`;
   const STOOQ = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}.us&i=d`;
+  const STOOQ_INDEX = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}&i=d`; // símbolos de índice (ej. ^vix), sin sufijo .us
   // Proxies used only as a fallback so the Yahoo Finance request can reach the
   // browser even though Yahoo's endpoint does not send CORS headers itself.
   // Ordered by current real-world reliability for anonymous/free traffic
@@ -300,9 +299,11 @@
     return fetch(url, Object.assign({}, opts, {signal: controller.signal}))
       .finally(()=>clearTimeout(t));
   }
+  const VIX_SYM = '^VIX';
   const state = {
     current: 'SPY',
     data: { SPY: null, QQQ: null },   // {closes:[...], source:string}
+    vix: null,                        // {closes:[...], source:string}
   };
 
   // ---------- math helpers ----------
@@ -369,11 +370,20 @@
   function hvRank(closes, period){
     // percentile rank of current realized volatility vs its own trailing history —
     // same formula as IV Rank, but built from historical price volatility instead of
-    // option-implied volatility (which this tool has no data source for).
+    // option-implied volatility.
     const series = rollingVolSeries(closes, period);
     if(series.length < 30) return null;
     const current = series[series.length-1];
     const min = Math.min(...series), max = Math.max(...series);
+    if(max===min) return 50;
+    return ((current-min)/(max-min))*100;
+  }
+  function ivRankFromVix(vixCloses){
+    // real IV Rank: posición del VIX actual dentro de su rango mín/máx de ~1 año.
+    // (VIX actual - mín 1a) / (máx 1a - mín 1a) * 100
+    if(!vixCloses || vixCloses.length < 30) return null;
+    const current = vixCloses[vixCloses.length-1];
+    const min = Math.min(...vixCloses), max = Math.max(...vixCloses);
     if(max===min) return 50;
     return ((current-min)/(max-min))*100;
   }
@@ -440,8 +450,9 @@
       document.getElementById('sumSource').textContent = d? d.source : '—';
       document.getElementById('rsiValue').textContent = '—';
       document.getElementById('rsiZone').textContent = 'sin datos';
-      document.getElementById('volAnn').textContent = '—';
-      document.getElementById('hvRankVal').textContent = '—';
+      document.getElementById('vixVal').textContent = '—';
+      document.getElementById('vixChg').textContent = '—';
+      document.getElementById('ivRankVal').textContent = '—';
       renderGauge(null);
       document.getElementById('trendBadge').className = 'trend-badge neutral';
       document.getElementById('trendBadge').textContent = 'Sin datos suficientes';
@@ -471,14 +482,30 @@
     chgEl.className = 'chg ' + (chg>0.005?'up':chg<-0.005?'down':'flat');
     document.getElementById('chg5').textContent = (chg5Pct>=0?'+':'') + chg5Pct.toFixed(2) + '%';
     document.getElementById('hi14lo14').textContent = `${fmtMoney(hi14)} / ${fmtMoney(lo14)}`;
-    document.getElementById('volVal').textContent = vol!==null ? (vol*100).toFixed(2)+'%' : '—';
     document.getElementById('sumBars').textContent = closes.length;
     document.getElementById('sumSource').textContent = d.source;
 
-    const volAnnualized = vol!==null ? vol*Math.sqrt(252) : null;
-    document.getElementById('volAnn').textContent = volAnnualized!==null ? (volAnnualized*100).toFixed(1)+'%' : '—';
-    const rank = hvRank(closes,14);
-    document.getElementById('hvRankVal').textContent = rank!==null ? rank.toFixed(0)+'%' : '—';
+    // ---------- VIX / IV Rank ----------
+    const vixCloses = state.vix && state.vix.closes;
+    const vixLast = vixCloses ? vixCloses[vixCloses.length-1] : null;
+    const vixPrev = vixCloses ? vixCloses[vixCloses.length-2] : null;
+    const vixChgVal = (vixLast!==null && vixPrev!==null) ? vixLast - vixPrev : null;
+    const vixChgPct = (vixChgVal!==null && vixPrev) ? (vixChgVal/vixPrev)*100 : null;
+    const ivRank = vixCloses ? ivRankFromVix(vixCloses) : null;
+
+    document.getElementById('vixVal').textContent = vixLast!==null ? vixLast.toFixed(2) : '—';
+    document.getElementById('vixChg').textContent = vixChgVal!==null
+      ? `${vixChgVal>=0?'▲':'▼'} ${Math.abs(vixChgVal).toFixed(2)} (${vixChgPct.toFixed(2)}%)` : '—';
+    document.getElementById('ivRankVal').textContent = ivRank!==null ? ivRank.toFixed(0)+'%' : '—';
+
+    if(vixCloses && vixCloses.length){
+      const vixMin = Math.min(...vixCloses), vixMax = Math.max(...vixCloses);
+      document.getElementById('cmpVixLevel').textContent = vixLast.toFixed(2);
+      document.getElementById('cmpVixChg').textContent = vixChgVal!==null
+        ? `${vixChgVal>=0?'+':''}${vixChgVal.toFixed(2)} (${vixChgPct.toFixed(2)}%)` : '—';
+      document.getElementById('cmpVixRange').textContent = `${vixMin.toFixed(2)} / ${vixMax.toFixed(2)}`;
+      document.getElementById('cmpIvRank').textContent = ivRank!==null ? ivRank.toFixed(0)+'%' : '—';
+    }
 
     renderSpark(closes);
 
@@ -516,6 +543,9 @@
     reasons.push(`RSI(14) = <b>${rsi.toFixed(1)}</b> → ${zone}.`);
     reasons.push(`Tendencia (SMA10 vs SMA30) → <b>${trendLabel}</b>.`);
     reasons.push(`Movimiento del día: <b>${chgPct.toFixed(2)}%</b>, últimas 5 sesiones: <b>${chg5Pct.toFixed(2)}%</b>.`);
+    if(vixLast!==null){
+      reasons.push(`VIX = <b>${vixLast.toFixed(2)}</b>${ivRank!==null ? `, IV Rank ≈ <b>${ivRank.toFixed(0)}%</b> (posición dentro del rango de 1 año)` : ''}.`);
+    }
 
     if(rsi<=30){
       strategy='put';
@@ -555,7 +585,7 @@
       }
       document.getElementById('shortStrike').textContent = fmtMoney(shortStrike);
       document.getElementById('longStrike').textContent = fmtMoney(longStrike);
-      reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio (basado en volatilidad diaria reciente), redondeado a strikes enteros de $1.`);
+      reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio (basado en volatilidad realizada reciente de ${sym}), redondeado a strikes enteros de $1.`);
     }
 
     document.getElementById('rationaleList').innerHTML = reasons.map(r=>`<li>${r}</li>`).join('');
@@ -598,9 +628,10 @@
     return null;
   }
 
-  async function tryStooq(sym){
+  async function tryStooq(sym, isIndex){
     try{
-      const resp = await fetchWithTimeout(STOOQ(sym), {cache:'no-store'});
+      const url = isIndex ? STOOQ_INDEX(sym) : STOOQ(sym);
+      const resp = await fetchWithTimeout(url, {cache:'no-store'});
       if(!resp.ok) throw new Error('HTTP '+resp.status);
       const text = await resp.text();
       const closes = parseStooqCSV(text);
@@ -617,12 +648,26 @@
       return true;
     }
     setStatus('Yahoo Finance no respondió para ' + sym + ', probando stooq.com...', '');
-    const stooqCloses = await tryStooq(sym);
+    const stooqCloses = await tryStooq(sym, false);
     if(stooqCloses){
       state.data[sym] = { closes: stooqCloses, source: 'stooq.com (auto, respaldo)' };
       return true;
     }
     setStatus('No se pudo auto-actualizar ' + sym + ' (bloqueo de red/CORS del navegador). Usa "Ingresar precios manualmente".', 'err');
+    return false;
+  }
+
+  async function fetchVix(){
+    const yahooCloses = await tryYahoo(VIX_SYM);
+    if(yahooCloses){
+      state.vix = { closes: yahooCloses, source: 'Yahoo Finance (auto)' };
+      return true;
+    }
+    const stooqCloses = await tryStooq(VIX_SYM, true);
+    if(stooqCloses){
+      state.vix = { closes: stooqCloses, source: 'stooq.com (auto, respaldo)' };
+      return true;
+    }
     return false;
   }
 
@@ -637,6 +682,7 @@
     btn.disabled = true; btn.textContent = 'Actualizando…';
     const okSpy = await fetchSymbol('SPY');
     const okQqq = await fetchSymbol('QQQ');
+    const okVix = await fetchVix();
     btn.disabled = false; btn.textContent = '↻ Actualizar datos';
     if(okSpy || okQqq){
       const sources = [state.data.SPY && state.data.SPY.source, state.data.QQQ && state.data.QQQ.source]
