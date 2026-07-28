@@ -178,9 +178,6 @@
       <div class="sub-metrics">
         <div>Cambio 5 sesiones <b id="chg5">—</b></div>
         <div>Máx / Mín (14 ses.) <b id="hi14lo14">—</b></div>
-        <div>VIX (nivel actual) <b id="vixVal">—</b></div>
-        <div>Cambio VIX (1 ses.) <b id="vixChg">—</b></div>
-        <div>IV Rank (VIX, 1a) <b id="ivRankVal">—</b></div>
       </div>
       <div class="spark" id="sparkWrap"></div>
     </div>
@@ -205,6 +202,26 @@
     </div>
 
     <div class="card">
+      <h2>VIX (CBOE)</h2>
+      <div class="rsi-wrap">
+        <div id="vixGaugeWrap"></div>
+        <div class="rsi-value" id="vixGaugeValue">—</div>
+        <div class="rsi-zone" id="vixZone">sin datos</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">Cambio 1 ses.: <b id="vixChgLine" style="color:var(--text);font-family:var(--mono);">—</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>IV Rank (VIX, 1a)</h2>
+      <div class="rsi-wrap">
+        <div id="ivRankGaugeWrap"></div>
+        <div class="rsi-value" id="ivRankGaugeValue">—</div>
+        <div class="rsi-zone" id="ivRankZone">sin datos</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">Rango VIX 1a: <b id="vixRangeLine" style="color:var(--text);font-family:var(--mono);">—</b></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Resumen rápido</h2>
       <div class="trend-rows">
         <div class="trend-line"><span>Símbolo</span><b id="sumSym">SPY</b></div>
@@ -215,24 +232,7 @@
     </div>
 
     <div class="card" style="grid-column:1 / -1;">
-      <h2>VIX — Volatilidad Implícita del Mercado</h2>
-      <div style="display:flex; gap:24px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:150px;">
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text);font-weight:700;">CBOE VIX</div>
-          <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
-            Nivel actual: <b id="cmpVixLevel">—</b><br>
-            Cambio (1 ses.): <b id="cmpVixChg">—</b><br>
-            Mín / Máx (1a): <b id="cmpVixRange">—</b>
-          </div>
-        </div>
-        <div style="flex:1; min-width:150px;">
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;">IV Rank</div>
-          <div style="font-family:var(--mono); font-size:13px; margin-top:6px; line-height:1.9; color:var(--text);">
-            IV Rank (1a): <b id="cmpIvRank">—</b>
-          </div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
+      <div style="font-size:11px;color:var(--muted);line-height:1.6;">
         El IV Rank se calcula como la posición del VIX actual dentro de su rango mínimo–máximo de los últimos ~12 meses: (VIX actual − mín 1a) / (máx 1a − mín 1a) × 100. El VIX refleja la volatilidad implícita del S&amp;P 500 (opciones de SPX); se usa aquí como referencia de mercado tanto para SPY como para QQQ, ya que esta herramienta no tiene acceso a la cadena de opciones real de cada símbolo. Verifica el IV Rank específico de cada ticker en tu bróker antes de operar.
       </div>
     </div>
@@ -408,33 +408,58 @@
       </svg>`;
   }
 
-  // ---------- RSI gauge ----------
-  function renderGauge(rsi){
+  // ---------- generic semicircular gauge ----------
+  function drawGauge(elId, value, vmin, vmax, zones){
     const w=200,h=120,cx=100,cy=100,r=80;
     function pt(angleDeg){
       const a = (Math.PI/180)*angleDeg;
       return [cx + r*Math.cos(a), cy - r*Math.sin(a)];
     }
-    // zones: 0-30 oversold (bull-ish signal color), 30-70 neutral, 70-100 overbought
     function arc(a0,a1,color){
       const [x0,y0]=pt(a0), [x1,y1]=pt(a1);
       const large = (a0-a1) > 180 ? 1:0;
       return `<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 0 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${color}" stroke-width="14" fill="none" stroke-linecap="round"/>`;
     }
-    // map value 0-100 to angle 180(left,val0) -> 0(right,val100)
-    const angFor = v => 180 - (v/100)*180;
+    // map value vmin..vmax to angle 180(left) -> 0(right)
+    const angFor = v => {
+      const pct = Math.min(1, Math.max(0, (v - vmin) / (vmax - vmin)));
+      return 180 - pct*180;
+    };
     let svg = `<svg width="${w}" height="${h+10}" viewBox="0 0 ${w} ${h+10}">`;
-    svg += arc(angFor(0), angFor(30), 'var(--bull)');
-    svg += arc(angFor(30), angFor(70), 'var(--neutral)');
-    svg += arc(angFor(70), angFor(100), 'var(--bear)');
-    if(rsi!==null){
-      const a = angFor(rsi);
+    zones.forEach(z => { svg += arc(angFor(z.from), angFor(z.to), z.color); });
+    if(value!==null && value!==undefined){
+      const clamped = Math.min(vmax, Math.max(vmin, value));
+      const a = angFor(clamped);
       const [nx,ny] = pt(a);
       svg += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/>`;
       svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--text)"/>`;
     }
     svg += `</svg>`;
-    document.getElementById('gaugeWrap').innerHTML = svg;
+    document.getElementById(elId).innerHTML = svg;
+  }
+  // zones: 0-30 oversold (bull-ish signal color), 30-70 neutral, 70-100 overbought
+  function renderGauge(rsi){
+    drawGauge('gaugeWrap', rsi, 0, 100, [
+      {from:0, to:30, color:'var(--bull)'},
+      {from:30, to:70, color:'var(--neutral)'},
+      {from:70, to:100, color:'var(--bear)'},
+    ]);
+  }
+  // VIX: <15 calma, 15-25 normal, >25 estrés (escala visual 10-40)
+  function renderVixGauge(vix){
+    drawGauge('vixGaugeWrap', vix, 10, 40, [
+      {from:10, to:15, color:'var(--bull)'},
+      {from:15, to:25, color:'var(--neutral)'},
+      {from:25, to:40, color:'var(--bear)'},
+    ]);
+  }
+  // IV Rank: <30 bajo (menos favorable para vender prima), 30-70 moderado, >70 alto (favorable para vender prima)
+  function renderIvRankGauge(rank){
+    drawGauge('ivRankGaugeWrap', rank, 0, 100, [
+      {from:0, to:30, color:'var(--bear)'},
+      {from:30, to:70, color:'var(--neutral)'},
+      {from:70, to:100, color:'var(--bull)'},
+    ]);
   }
 
   // ---------- core render ----------
@@ -450,9 +475,14 @@
       document.getElementById('sumSource').textContent = d? d.source : '—';
       document.getElementById('rsiValue').textContent = '—';
       document.getElementById('rsiZone').textContent = 'sin datos';
-      document.getElementById('vixVal').textContent = '—';
-      document.getElementById('vixChg').textContent = '—';
-      document.getElementById('ivRankVal').textContent = '—';
+      document.getElementById('vixGaugeValue').textContent = '—';
+      document.getElementById('vixZone').textContent = 'sin datos';
+      document.getElementById('vixChgLine').textContent = '—';
+      document.getElementById('ivRankGaugeValue').textContent = '—';
+      document.getElementById('ivRankZone').textContent = 'sin datos';
+      document.getElementById('vixRangeLine').textContent = '—';
+      renderVixGauge(null);
+      renderIvRankGauge(null);
       renderGauge(null);
       document.getElementById('trendBadge').className = 'trend-badge neutral';
       document.getElementById('trendBadge').textContent = 'Sin datos suficientes';
@@ -493,18 +523,27 @@
     const vixChgPct = (vixChgVal!==null && vixPrev) ? (vixChgVal/vixPrev)*100 : null;
     const ivRank = vixCloses ? ivRankFromVix(vixCloses) : null;
 
-    document.getElementById('vixVal').textContent = vixLast!==null ? vixLast.toFixed(2) : '—';
-    document.getElementById('vixChg').textContent = vixChgVal!==null
+    document.getElementById('vixGaugeValue').textContent = vixLast!==null ? vixLast.toFixed(2) : '—';
+    let vixZoneTxt = 'sin datos';
+    if(vixLast!==null){
+      vixZoneTxt = vixLast<15 ? 'calma' : vixLast<25 ? 'normal' : 'estrés / alta volatilidad';
+    }
+    document.getElementById('vixZone').textContent = vixZoneTxt;
+    document.getElementById('vixChgLine').textContent = vixChgVal!==null
       ? `${vixChgVal>=0?'▲':'▼'} ${Math.abs(vixChgVal).toFixed(2)} (${vixChgPct.toFixed(2)}%)` : '—';
-    document.getElementById('ivRankVal').textContent = ivRank!==null ? ivRank.toFixed(0)+'%' : '—';
+    renderVixGauge(vixLast);
+
+    document.getElementById('ivRankGaugeValue').textContent = ivRank!==null ? ivRank.toFixed(0)+'%' : '—';
+    let ivZoneTxt = 'sin datos';
+    if(ivRank!==null){
+      ivZoneTxt = ivRank<30 ? 'IV bajo' : ivRank<70 ? 'IV moderado' : 'IV alto';
+    }
+    document.getElementById('ivRankZone').textContent = ivZoneTxt;
+    renderIvRankGauge(ivRank);
 
     if(vixCloses && vixCloses.length){
       const vixMin = Math.min(...vixCloses), vixMax = Math.max(...vixCloses);
-      document.getElementById('cmpVixLevel').textContent = vixLast.toFixed(2);
-      document.getElementById('cmpVixChg').textContent = vixChgVal!==null
-        ? `${vixChgVal>=0?'+':''}${vixChgVal.toFixed(2)} (${vixChgPct.toFixed(2)}%)` : '—';
-      document.getElementById('cmpVixRange').textContent = `${vixMin.toFixed(2)} / ${vixMax.toFixed(2)}`;
-      document.getElementById('cmpIvRank').textContent = ivRank!==null ? ivRank.toFixed(0)+'%' : '—';
+      document.getElementById('vixRangeLine').textContent = `${vixMin.toFixed(2)} / ${vixMax.toFixed(2)}`;
     }
 
     renderSpark(closes);
