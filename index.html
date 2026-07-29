@@ -293,6 +293,11 @@
   ];
   const FETCH_TIMEOUT_MS = 8000;
 
+  // CNBC quote endpoint: fuente en vivo adicional para refinar/confirmar el
+  // último precio (Yahoo puede quedar cacheado por los proxies CORS).
+  const CNBC_SYMBOL = { SPY: 'SPY', QQQ: 'QQQ', '^VIX': '.VIX' };
+  const CNBC = sym => `https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=${encodeURIComponent(CNBC_SYMBOL[sym]||sym)}&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json`;
+
   function fetchWithTimeout(url, opts){
     const controller = new AbortController();
     const t = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
@@ -647,8 +652,27 @@
   function parseYahooJSON(json){
     const result = json && json.chart && json.chart.result && json.chart.result[0];
     if(!result) throw new Error('formato inesperado');
+    const timestamps = result.timestamp || [];
     const closesRaw = result.indicators.quote[0].close;
-    return closesRaw.filter(c => c !== null && c !== undefined);
+    const closes = closesRaw.filter(c => c !== null && c !== undefined);
+    const meta = result.meta || {};
+    // Las velas diarias solo se "cierran" al final de la sesión: mientras el
+    // mercado sigue abierto, la vela de hoy llega con close=null y se filtra
+    // arriba, dejando el cierre de AYER como último dato. meta.regularMarketPrice
+    // sí trae el precio real más reciente (en vivo durante el día, o el cierre
+    // final una vez terminó la sesión), así que lo usamos para corregir/añadir
+    // el último punto.
+    if(typeof meta.regularMarketPrice === 'number'){
+      const lastBarTs = timestamps.length ? timestamps[timestamps.length-1] : null;
+      const liveTs = meta.regularMarketTime;
+      const dayOf = ts => ts ? new Date(ts*1000).toISOString().slice(0,10) : null;
+      if(lastBarTs && liveTs && dayOf(lastBarTs) === dayOf(liveTs) && closes.length){
+        closes[closes.length-1] = meta.regularMarketPrice; // misma sesión: refrescar con el precio más reciente
+      } else {
+        closes.push(meta.regularMarketPrice); // la vela de hoy aún no está en el array: añadirla
+      }
+    }
+    return closes;
   }
 
   async function tryYahoo(sym){
@@ -667,6 +691,21 @@
     return null;
   }
 
+  async function tryCnbc(sym){
+    const url = CNBC(sym);
+    for(const wrap of CORS_PROXIES){
+      try{
+        const resp = await fetchWithTimeout(wrap(url), {cache:'no-store'});
+        if(!resp.ok) throw new Error('HTTP '+resp.status);
+        const json = await resp.json();
+        const q = json && json.FormattedQuoteResult && json.FormattedQuoteResult.FormattedQuote && json.FormattedQuoteResult.FormattedQuote[0];
+        const last = q && parseFloat(q.last);
+        if(typeof last === 'number' && isFinite(last) && last > 0) return last;
+      }catch(e){ /* try next proxy */ }
+    }
+    return null;
+  }
+
   async function tryStooq(sym, isIndex){
     try{
       const url = isIndex ? STOOQ_INDEX(sym) : STOOQ(sym);
@@ -679,17 +718,27 @@
     return null;
   }
 
+  async function refineWithCnbc(sym, closes){
+    // Mejor esfuerzo: si CNBC responde, reemplaza el último punto por su precio
+    // en vivo (más fresco que una vela diaria cacheada por un proxy CORS).
+    try{
+      const live = await tryCnbc(sym);
+      if(live && closes && closes.length) closes[closes.length-1] = live;
+    }catch(e){ /* silencioso: closes ya es válido sin esto */ }
+    return closes;
+  }
+
   async function fetchSymbol(sym){
     setStatus('Buscando datos de '+sym+' en Yahoo Finance...', '');
     const yahooCloses = await tryYahoo(sym);
     if(yahooCloses){
-      state.data[sym] = { closes: yahooCloses, source: 'Yahoo Finance (auto)' };
+      state.data[sym] = { closes: await refineWithCnbc(sym, yahooCloses), source: 'Yahoo Finance + CNBC (auto)' };
       return true;
     }
     setStatus('Yahoo Finance no respondió para ' + sym + ', probando stooq.com...', '');
     const stooqCloses = await tryStooq(sym, false);
     if(stooqCloses){
-      state.data[sym] = { closes: stooqCloses, source: 'stooq.com (auto, respaldo)' };
+      state.data[sym] = { closes: await refineWithCnbc(sym, stooqCloses), source: 'stooq.com + CNBC (auto, respaldo)' };
       return true;
     }
     setStatus('No se pudo auto-actualizar ' + sym + ' (bloqueo de red/CORS del navegador). Usa "Ingresar precios manualmente".', 'err');
@@ -699,12 +748,12 @@
   async function fetchVix(){
     const yahooCloses = await tryYahoo(VIX_SYM);
     if(yahooCloses){
-      state.vix = { closes: yahooCloses, source: 'Yahoo Finance (auto)' };
+      state.vix = { closes: await refineWithCnbc(VIX_SYM, yahooCloses), source: 'Yahoo Finance + CNBC (auto)' };
       return true;
     }
     const stooqCloses = await tryStooq(VIX_SYM, true);
     if(stooqCloses){
-      state.vix = { closes: stooqCloses, source: 'stooq.com (auto, respaldo)' };
+      state.vix = { closes: await refineWithCnbc(VIX_SYM, stooqCloses), source: 'stooq.com + CNBC (auto, respaldo)' };
       return true;
     }
     return false;
