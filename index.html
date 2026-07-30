@@ -16,6 +16,7 @@
     --bull: #35B37E;
     --bear: #E85D5D;
     --neutral: #8B93A1;
+    --condor: #C79DF2;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   }
@@ -103,6 +104,7 @@
   .strategy-name{ font-family:var(--mono); font-size:22px; font-weight:700; }
   .strategy-name.put{ color:var(--bull); }
   .strategy-name.call{ color:var(--bear); }
+  .strategy-name.condor{ color:var(--condor); }
   .strategy-name.wait{ color:var(--neutral); }
   .dte-select{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
   .dte-select select{
@@ -254,18 +256,24 @@
         </div>
       </div>
       <div class="strikes-row">
-        <div class="strike-box"><div class="lbl">Strike corto (vender)</div><div class="val" id="shortStrike">—</div></div>
-        <div class="strike-box"><div class="lbl">Strike largo (comprar)</div><div class="val" id="longStrike">—</div></div>
+        <div class="strike-box"><div class="lbl" id="shortLabel">Strike corto (vender)</div><div class="val" id="shortStrike">—</div></div>
+        <div class="strike-box"><div class="lbl" id="longLabel">Strike largo (comprar)</div><div class="val" id="longStrike">—</div></div>
         <div class="strike-box"><div class="lbl">Ancho</div><div class="val">$1.00</div></div>
         <div class="strike-box exp"><div class="lbl">Expiración sugerida</div><div class="val" id="expDate">—</div></div>
+      </div>
+      <div class="strikes-row" id="condorCallRow" style="display:none;">
+        <div class="strike-box"><div class="lbl">Strike corto Call (vender)</div><div class="val" id="shortStrikeCall">—</div></div>
+        <div class="strike-box"><div class="lbl">Strike largo Call (comprar)</div><div class="val" id="longStrikeCall">—</div></div>
+        <div class="strike-box"><div class="lbl">Ancho Call</div><div class="val">$1.00</div></div>
+        <div class="strike-box exp"><div class="lbl">Estructura</div><div class="val" style="font-size:14px;">Put spread + Call spread</div></div>
       </div>
       <div class="rationale">
         <b>Razonamiento</b>
         <ul id="rationaleList"><li>Carga datos para ver el análisis.</li></ul>
       </div>
       <div class="disclaimer">
-        Herramienta educativa basada en reglas técnicas simples (RSI y medias móviles). No es asesoría financiera ni una recomendación de inversión.
-        Los spreads de crédito 0–5 DTE tienen riesgo elevado y pueden generar pérdidas rápidas; el ancho de $1 limita pero no elimina el riesgo por contrato.
+        Herramienta educativa basada en reglas técnicas simples (RSI, medias móviles, VIX/IV Rank y movimiento reciente). No es asesoría financiera ni una recomendación de inversión.
+        Los spreads de crédito y los Iron Condor 0–5 DTE tienen riesgo elevado y pueden generar pérdidas rápidas; el ancho de $1 por lado limita pero no elimina el riesgo por contrato, y en un Iron Condor el riesgo existe en ambas direcciones si el precio rompe cualquiera de los dos lados.
         Verifica siempre precios y cadena de opciones reales en tu bróker antes de operar.
       </div>
     </div>
@@ -496,6 +504,9 @@
       document.getElementById('rationaleList').innerHTML = '<li>Carga al menos 30 cierres diarios (auto-actualizar o manual) para generar una sugerencia.</li>';
       document.getElementById('shortStrike').textContent = '—';
       document.getElementById('longStrike').textContent = '—';
+      document.getElementById('shortStrikeCall').textContent = '—';
+      document.getElementById('longStrikeCall').textContent = '—';
+      document.getElementById('condorCallRow').style.display = 'none';
       document.getElementById('expDate').textContent = '—';
       return;
     }
@@ -591,45 +602,110 @@
       reasons.push(`VIX = <b>${vixLast.toFixed(2)}</b>${ivRank!==null ? `, IV Rank ≈ <b>${ivRank.toFixed(0)}%</b> (posición dentro del rango de 1 año)` : ''}.`);
     }
 
-    if(rsi<=30){
+    // El DTE ajusta cuán exigentes son los umbrales: con menos días hasta la
+    // expiración hay menos margen de tiempo para que el precio "regrese" si la
+    // señal falla, así que se exige una señal más extrema/confiable. Con más
+    // días se relaja un poco el umbral, pero los strikes se alejan más
+    // (ver offsetPct más abajo) para compensar el mayor movimiento esperado.
+    let rsiOversold = 30, rsiOverbought = 70, mv5Thresh = 2.0, mvDayThresh = 1.0, ivRankMin = 50;
+    let dteTier = 'media';
+    if(dte <= 1){
+      dteTier = 'corta';
+      rsiOversold = 25; rsiOverbought = 75;
+      mv5Thresh = 1.5; mvDayThresh = 0.8;
+      ivRankMin = 55;
+    } else if(dte >= 4){
+      dteTier = 'larga';
+      rsiOversold = 33; rsiOverbought = 67;
+      mv5Thresh = 2.5; mvDayThresh = 1.2;
+      ivRankMin = 45;
+    }
+    reasons.push(`DTE seleccionado: <b>${dte} día(s)</b> (ventana ${dteTier}) → umbral RSI ${rsiOversold}/${rsiOverbought}, movimiento máx. ${mvDayThresh}%/día · ${mv5Thresh}%/5 ses., IV Rank mínimo para condor ${ivRankMin}%.`);
+
+    // Checks específicos para Iron Condor: mercado sin sesgo direccional
+    // (tendencia neutral + RSI neutral), movimiento reciente acotado (no está
+    // "corriendo" en una dirección) y prima suficiente para vender en ambos
+    // lados (IV Rank alto). Los tres umbrales ya están ajustados por DTE.
+    const neutralRsi = rsi > 40 && rsi < 60;
+    const lowMovement = Math.abs(chg5Pct) < mv5Thresh && Math.abs(chgPct) < mvDayThresh;
+    const highIvRank = ivRank !== null && ivRank >= ivRankMin;
+
+    if(trend==='neutral' && neutralRsi && lowMovement && highIvRank){
+      strategy = 'condor';
+      reasons.push(`Sin sesgo direccional (tendencia neutral, RSI ${rsi.toFixed(1)}) y movimiento acotado (5 sesiones: ${chg5Pct.toFixed(2)}%), con IV Rank alto (${ivRank.toFixed(0)}%) → prima atractiva en ambos lados, se favorece <b>vender un Iron Condor</b> (Put Credit Spread + Call Credit Spread).`);
+    } else if(rsi<=rsiOversold){
       strategy='put';
-      reasons.push('RSI en zona de sobreventa → sesgo hacia rebote de corto plazo, se favorece <b>vender un Put Credit Spread</b> por debajo del precio.');
-    } else if(rsi>=70){
+      reasons.push(`RSI en zona de sobreventa (≤ ${rsiOversold}) → sesgo hacia rebote de corto plazo, se favorece <b>vender un Put Credit Spread</b> por debajo del precio.`);
+    } else if(rsi>=rsiOverbought){
       strategy='call';
-      reasons.push('RSI en zona de sobrecompra → sesgo hacia pausa/retroceso, se favorece <b>vender un Call Credit Spread</b> por encima del precio.');
+      reasons.push(`RSI en zona de sobrecompra (≥ ${rsiOverbought}) → sesgo hacia pausa/retroceso, se favorece <b>vender un Call Credit Spread</b> por encima del precio.`);
     } else if(trend==='bull' && rsi>=50){
       strategy='put';
       reasons.push('Tendencia alcista con RSI por encima de 50 → continuación, se favorece <b>vender un Put Credit Spread</b> (vender caídas).');
     } else if(trend==='bear' && rsi<=50){
       strategy='call';
       reasons.push('Tendencia bajista con RSI por debajo de 50 → continuación, se favorece <b>vender un Call Credit Spread</b> (vender rebotes).');
+    } else if(trend==='neutral' && neutralRsi && lowMovement){
+      strategy='wait';
+      reasons.push(`Sin sesgo direccional y movimiento acotado (condiciones de rango) para este DTE, pero el IV Rank ${ivRank!==null ? 'es bajo ('+ivRank.toFixed(0)+'% < '+ivRankMin+'%)' : 'no está disponible'} → prima insuficiente para justificar un Iron Condor; se sugiere <b>esperar</b> a que suba el IV Rank.`);
     } else {
       strategy='wait';
-      reasons.push('Sin sesgo claro entre tendencia y RSI → se sugiere <b>esperar</b> una señal más definida antes de abrir posición.');
+      reasons.push('Sin sesgo claro entre tendencia y RSI para este DTE → se sugiere <b>esperar</b> una señal más definida antes de abrir posición.');
     }
 
     const nameEl = document.getElementById('strategyName');
     if(strategy==='put'){ nameEl.textContent='Put Credit Spread'; nameEl.className='strategy-name put'; }
     else if(strategy==='call'){ nameEl.textContent='Call Credit Spread'; nameEl.className='strategy-name call'; }
+    else if(strategy==='condor'){ nameEl.textContent='Iron Condor'; nameEl.className='strategy-name condor'; }
     else { nameEl.textContent='Esperar / sin operación'; nameEl.className='strategy-name wait'; }
 
+    const condorRow = document.getElementById('condorCallRow');
     if(strategy==='wait' || vol===null){
+      document.getElementById('shortLabel').textContent = 'Strike corto (vender)';
+      document.getElementById('longLabel').textContent = 'Strike largo (comprar)';
       document.getElementById('shortStrike').textContent = '—';
       document.getElementById('longStrike').textContent = '—';
+      document.getElementById('shortStrikeCall').textContent = '—';
+      document.getElementById('longStrikeCall').textContent = '—';
+      condorRow.style.display = 'none';
     } else {
-      const offsetPct = Math.min(Math.max(vol*1.2, 0.004), 0.03);
+      // Escala el offset por √DTE: el movimiento esperado del precio crece con
+      // la raíz cuadrada del tiempo (supuesto estándar de camino aleatorio),
+      // así que a más días hasta la expiración, los strikes se alejan más.
+      const dteFactor = Math.sqrt(Math.max(dte,1));
+      const offsetPct = Math.min(Math.max(vol*1.2*dteFactor, 0.004), 0.03*dteFactor);
       const offsetDollars = last*offsetPct;
-      let shortStrike, longStrike;
-      if(strategy==='put'){
-        shortStrike = Math.round(last - offsetDollars);
-        longStrike = shortStrike - 1;
+      if(strategy==='condor'){
+        const shortPut = Math.round(last - offsetDollars);
+        const longPut = shortPut - 1;
+        const shortCall = Math.round(last + offsetDollars);
+        const longCall = shortCall + 1;
+        document.getElementById('shortLabel').textContent = 'Strike corto Put (vender)';
+        document.getElementById('longLabel').textContent = 'Strike largo Put (comprar)';
+        document.getElementById('shortStrike').textContent = fmtMoney(shortPut);
+        document.getElementById('longStrike').textContent = fmtMoney(longPut);
+        document.getElementById('shortStrikeCall').textContent = fmtMoney(shortCall);
+        document.getElementById('longStrikeCall').textContent = fmtMoney(longCall);
+        condorRow.style.display = '';
+        reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio a cada lado (volatilidad realizada de ${sym} × √${dte||1} DTE), redondeado a strikes enteros de $1. El punto máximo de pérdida por contrato está limitado al ancho de $1 menos el crédito recibido, en cada lado.`);
       } else {
-        shortStrike = Math.round(last + offsetDollars);
-        longStrike = shortStrike + 1;
+        let shortStrike, longStrike;
+        if(strategy==='put'){
+          shortStrike = Math.round(last - offsetDollars);
+          longStrike = shortStrike - 1;
+        } else {
+          shortStrike = Math.round(last + offsetDollars);
+          longStrike = shortStrike + 1;
+        }
+        document.getElementById('shortLabel').textContent = 'Strike corto (vender)';
+        document.getElementById('longLabel').textContent = 'Strike largo (comprar)';
+        document.getElementById('shortStrike').textContent = fmtMoney(shortStrike);
+        document.getElementById('longStrike').textContent = fmtMoney(longStrike);
+        document.getElementById('shortStrikeCall').textContent = '—';
+        document.getElementById('longStrikeCall').textContent = '—';
+        condorRow.style.display = 'none';
+        reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio (volatilidad realizada de ${sym} × √${dte||1} DTE), redondeado a strikes enteros de $1.`);
       }
-      document.getElementById('shortStrike').textContent = fmtMoney(shortStrike);
-      document.getElementById('longStrike').textContent = fmtMoney(longStrike);
-      reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio (basado en volatilidad realizada reciente de ${sym}), redondeado a strikes enteros de $1.`);
     }
 
     document.getElementById('rationaleList').innerHTML = reasons.map(r=>`<li>${r}</li>`).join('');
