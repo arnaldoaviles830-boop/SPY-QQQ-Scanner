@@ -94,6 +94,12 @@
   .trend-rows{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
   .trend-line{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); border-bottom:1px dashed var(--border); padding-bottom:6px; }
   .trend-line b{ font-family:var(--mono); color:var(--text); }
+  .ext-link{
+    display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px;
+    font-size:11.5px; font-weight:600; text-decoration:none; color:var(--text);
+    background:var(--bg2, rgba(139,147,161,.10)); border:1px solid var(--border);
+  }
+  .ext-link:hover{ border-color:var(--accent, var(--text)); }
 
   .rsi-wrap{ display:flex; flex-direction:column; align-items:center; }
   .rsi-value{ font-family:var(--mono); font-size:30px; font-weight:700; margin-top:-52px; }
@@ -231,6 +237,12 @@
         <div class="trend-line"><span>Fuente</span><b id="sumSource">—</b></div>
         <div class="trend-line"><span>Día</span><b id="sumDay">—</b></div>
       </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+        <a id="linkTvSym" href="#" target="_blank" rel="noopener" class="ext-link">📈 TradingView (símbolo)</a>
+        <a id="linkFvSym" href="#" target="_blank" rel="noopener" class="ext-link">🔎 Finviz (símbolo)</a>
+        <a id="linkTvVix" href="https://www.tradingview.com/symbols/TVC-VIX/" target="_blank" rel="noopener" class="ext-link">📈 TradingView (VIX)</a>
+        <a id="linkFvVix" href="https://finviz.com/quote.ashx?t=VIX" target="_blank" rel="noopener" class="ext-link">🔎 Finviz (VIX)</a>
+      </div>
     </div>
 
     <div class="card" style="grid-column:1 / -1;">
@@ -305,6 +317,10 @@
   // último precio (Yahoo puede quedar cacheado por los proxies CORS).
   const CNBC_SYMBOL = { SPY: 'SPY', QQQ: 'QQQ', '^VIX': '.VIX' };
   const CNBC = sym => `https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=${encodeURIComponent(CNBC_SYMBOL[sym]||sym)}&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json`;
+  // Finviz: fuente en vivo adicional (cotización con 15-20 min de delay según su
+  // propia política, no tiempo real puro, pero sirve como segundo cruce/respaldo).
+  const FINVIZ_SYMBOL = { SPY: 'SPY', QQQ: 'QQQ', '^VIX': 'VIX' };
+  const FINVIZ = sym => `https://finviz.com/quote.ashx?t=${encodeURIComponent(FINVIZ_SYMBOL[sym]||sym)}`;
 
   function fetchWithTimeout(url, opts){
     const controller = new AbortController();
@@ -479,6 +495,11 @@
   function render(sym){
     const d = state.data[sym];
     document.getElementById('sumSym').textContent = sym;
+    const TV_SYMBOL = { SPY:'AMEX-SPY', QQQ:'NASDAQ-QQQ' };
+    document.getElementById('linkTvSym').href = `https://www.tradingview.com/symbols/${TV_SYMBOL[sym]||sym}/`;
+    document.getElementById('linkFvSym').href = `https://finviz.com/quote.ashx?t=${sym}`;
+    document.getElementById('linkTvSym').textContent = `📈 TradingView (${sym})`;
+    document.getElementById('linkFvSym').textContent = `🔎 Finviz (${sym})`;
     document.getElementById('sumDay').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long', day:'2-digit', month:'long'});
 
     if(!d || !d.closes || d.closes.length < 20){
@@ -782,6 +803,29 @@
     return null;
   }
 
+  async function tryFinviz(sym){
+    // Finviz no expone una API JSON pública: se extrae el precio de la fila
+    // "Price" de su tabla de snapshot. Sus cotizaciones vienen con 15-20 min
+    // de delay (política propia de Finviz), así que esto es un refinamiento
+    // adicional/cruce, no una fuente de tiempo real.
+    const url = FINVIZ(sym);
+    for(const wrap of CORS_PROXIES){
+      try{
+        const resp = await fetchWithTimeout(wrap(url), {cache:'no-store'});
+        if(!resp.ok) throw new Error('HTTP '+resp.status);
+        const html = await resp.text();
+        const m = html.match(/Price<\/t[dh][^>]*>\s*<t[dh][^>]*>\s*(?:<b>)?\s*([\d,]+\.?\d*)/i)
+               || html.match(/"c":"([\d.]+)"/)
+               || html.match(/data-price="([\d.]+)"/i);
+        if(m){
+          const val = parseFloat(m[1].replace(/,/g,''));
+          if(isFinite(val) && val > 0) return val;
+        }
+      }catch(e){ /* try next proxy */ }
+    }
+    return null;
+  }
+
   async function tryStooq(sym, isIndex){
     try{
       const url = isIndex ? STOOQ_INDEX(sym) : STOOQ(sym);
@@ -794,27 +838,38 @@
     return null;
   }
 
-  async function refineWithCnbc(sym, closes){
-    // Mejor esfuerzo: si CNBC responde, reemplaza el último punto por su precio
-    // en vivo (más fresco que una vela diaria cacheada por un proxy CORS).
+  async function refineLivePrice(sym, closes){
+    // Mejor esfuerzo, en cadena: CNBC primero (más estructurado), Finviz como
+    // segundo cruce. Si alguno responde, reemplaza el último punto por su
+    // precio (más fresco que una vela diaria potencialmente cacheada por un
+    // proxy CORS). Si ambos fallan, closes queda intacto (Yahoo/stooq solos).
+    let refinedBy = null;
     try{
       const live = await tryCnbc(sym);
-      if(live && closes && closes.length) closes[closes.length-1] = live;
-    }catch(e){ /* silencioso: closes ya es válido sin esto */ }
-    return closes;
+      if(live && closes && closes.length){ closes[closes.length-1] = live; refinedBy = 'CNBC'; }
+    }catch(e){ /* silencioso */ }
+    if(!refinedBy){
+      try{
+        const live = await tryFinviz(sym);
+        if(live && closes && closes.length){ closes[closes.length-1] = live; refinedBy = 'Finviz'; }
+      }catch(e){ /* silencioso */ }
+    }
+    return { closes, refinedBy };
   }
 
   async function fetchSymbol(sym){
     setStatus('Buscando datos de '+sym+' en Yahoo Finance...', '');
     const yahooCloses = await tryYahoo(sym);
     if(yahooCloses){
-      state.data[sym] = { closes: await refineWithCnbc(sym, yahooCloses), source: 'Yahoo Finance + CNBC (auto)' };
+      const { closes, refinedBy } = await refineLivePrice(sym, yahooCloses);
+      state.data[sym] = { closes, source: 'Yahoo Finance' + (refinedBy?` + ${refinedBy}`:'') + ' (auto)' };
       return true;
     }
     setStatus('Yahoo Finance no respondió para ' + sym + ', probando stooq.com...', '');
     const stooqCloses = await tryStooq(sym, false);
     if(stooqCloses){
-      state.data[sym] = { closes: await refineWithCnbc(sym, stooqCloses), source: 'stooq.com + CNBC (auto, respaldo)' };
+      const { closes, refinedBy } = await refineLivePrice(sym, stooqCloses);
+      state.data[sym] = { closes, source: 'stooq.com' + (refinedBy?` + ${refinedBy}`:'') + ' (auto, respaldo)' };
       return true;
     }
     setStatus('No se pudo auto-actualizar ' + sym + ' (bloqueo de red/CORS del navegador). Usa "Ingresar precios manualmente".', 'err');
@@ -824,12 +879,14 @@
   async function fetchVix(){
     const yahooCloses = await tryYahoo(VIX_SYM);
     if(yahooCloses){
-      state.vix = { closes: await refineWithCnbc(VIX_SYM, yahooCloses), source: 'Yahoo Finance + CNBC (auto)' };
+      const { closes, refinedBy } = await refineLivePrice(VIX_SYM, yahooCloses);
+      state.vix = { closes, source: 'Yahoo Finance' + (refinedBy?` + ${refinedBy}`:'') + ' (auto)' };
       return true;
     }
     const stooqCloses = await tryStooq(VIX_SYM, true);
     if(stooqCloses){
-      state.vix = { closes: await refineWithCnbc(VIX_SYM, stooqCloses), source: 'stooq.com + CNBC (auto, respaldo)' };
+      const { closes, refinedBy } = await refineLivePrice(VIX_SYM, stooqCloses);
+      state.vix = { closes, source: 'stooq.com' + (refinedBy?` + ${refinedBy}`:'') + ' (auto, respaldo)' };
       return true;
     }
     return false;
