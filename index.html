@@ -249,6 +249,11 @@
         <a id="linkTvVix" href="https://www.tradingview.com/symbols/TVC-VIX/" target="_blank" rel="noopener" class="ext-link">📈 TradingView (VIX)</a>
         <a id="linkFvVix" href="https://finviz.com/quote.ashx?t=VIX" target="_blank" rel="noopener" class="ext-link">🔎 Finviz (VIX)</a>
       </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <a id="linkBarchartSym" href="#" target="_blank" rel="noopener" class="ext-link">⛓️ Barchart — cadena de opciones</a>
+        <a id="linkChameleonSym" href="#" target="_blank" rel="noopener" class="ext-link">📊 Market Chameleon — IV Rank/Percentile</a>
+        <a id="linkOptionStrat" href="https://optionstrat.com/build" target="_blank" rel="noopener" class="ext-link">🧮 OptionStrat — payoff (ingresa strikes sugeridos)</a>
+      </div>
     </div>
 
     <div class="card" style="grid-column:1 / -1;">
@@ -390,6 +395,10 @@
   // strikes, IV, OI, volumen y bid/ask por contrato. Sin fecha -> vencimiento
   // más próximo + lista completa de vencimientos disponibles.
   const YAHOO_OPTIONS = (sym, dateUnix) => `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(sym)}${dateUnix?`?date=${dateUnix}`:''}`;
+  // Respaldo: Nasdaq expone su cadena de opciones sin exigir el cookie+crumb
+  // de sesión que Yahoo pide ahora en sus endpoints v7 (por eso el precio de
+  // Yahoo sí conecta pero las opciones a veces no). SPY/QQQ son ETFs.
+  const NASDAQ_OPTIONS = sym => `https://api.nasdaq.com/api/quote/${encodeURIComponent(sym)}/option-chain?assetclass=etf&limit=3000&fromdate=all`;
   const STOOQ = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}.us&i=d`;
   const STOOQ_INDEX = sym => `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}&i=d`; // símbolos de índice (ej. ^vix), sin sufijo .us
   // Proxies used only as a fallback so the Yahoo Finance request can reach the
@@ -464,6 +473,18 @@
       ? S*normCdf(d1) - K*Math.exp(-r*T)*normCdf(d2)
       : K*Math.exp(-r*T)*normCdf(-d2) - S*normCdf(-d1);
     return { delta, gamma, theta: thetaAnnual/365, price: Math.max(0,price) };
+  }
+  function impliedVolFromPrice(price, S, K, T, isCall){
+    // Bisección sobre bsGreeks(...).price — usado cuando la fuente de datos
+    // (ej. Nasdaq) da precio de mercado pero no IV directamente.
+    if(!(price>0) || T<=0 || !(S>0) || !(K>0)) return null;
+    let lo=0.01, hi=4.0;
+    for(let i=0;i<40;i++){
+      const mid=(lo+hi)/2;
+      const p = bsGreeks(S,K,T,mid,isCall).price;
+      if(p>price) hi=mid; else lo=mid;
+    }
+    return (lo+hi)/2;
   }
 
   function sma(arr, period){
@@ -757,6 +778,10 @@
     document.getElementById('linkFvSym').href = `https://finviz.com/quote.ashx?t=${sym}`;
     document.getElementById('linkTvSym').textContent = `📈 TradingView (${sym})`;
     document.getElementById('linkFvSym').textContent = `🔎 Finviz (${sym})`;
+    document.getElementById('linkBarchartSym').href = `https://www.barchart.com/etfs-funds/quotes/${sym}/options`;
+    document.getElementById('linkBarchartSym').textContent = `⛓️ Barchart — cadena de opciones (${sym})`;
+    document.getElementById('linkChameleonSym').href = `https://marketchameleon.com/Overview/${sym}/IV/`;
+    document.getElementById('linkChameleonSym').textContent = `📊 Market Chameleon — IV Rank/Percentile (${sym})`;
     document.getElementById('sumDay').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long', day:'2-digit', month:'long'});
 
     if(!d || !d.closes || d.closes.length < 20){
@@ -925,6 +950,7 @@
     // ---------- IV real (cadena) / Expected Move / GEX ----------
     const chain = state.chain[sym];
     const useChain = !!(chain && chain.calls && chain.calls.length && chain.puts && chain.puts.length);
+    const chainSourceLabel = (chain && chain.source) ? chain.source : 'cadena real';
     const spot = (chain && chain.spot) || last;
     const T = Math.max(dte,0.5)/365;
     const atmIV = useChain ? atmImpliedVol(chain, spot) : null;
@@ -1148,7 +1174,7 @@
     } else if(strategy==='condor'){
       const putLegs = pickCreditLegs(false), callLegs = pickCreditLegs(true);
       strikesViaChain = putLegs.viaChain;
-      document.getElementById('strikeMethod').textContent = strikesViaChain ? `Delta ${targetDelta.toFixed(2)} (cadena real)` : 'Expected Move (sin cadena de opciones)';
+      document.getElementById('strikeMethod').textContent = strikesViaChain ? `Delta ${targetDelta.toFixed(2)} (${chainSourceLabel})` : 'Expected Move (sin cadena de opciones)';
       document.getElementById('shortLabel').textContent = 'Strike corto Put (vender)';
       document.getElementById('longLabel').textContent = 'Strike largo Put (comprar)';
       document.getElementById('shortStrike').textContent = fmtMoney(putLegs.shortC.strike);
@@ -1157,7 +1183,7 @@
       document.getElementById('longStrikeCall').textContent = fmtMoney(callLegs.longC.strike);
       document.getElementById('spreadWidth').textContent = `$${putLegs.width.toFixed(2)} put / $${callLegs.width.toFixed(2)} call`;
       condorRow.style.display = '';
-      reasons.push(`Strikes por Delta objetivo ${targetDelta.toFixed(2)}${strikesViaChain?' (cadena real de opciones)':' (aprox. vía Expected Move — sin acceso a cadena)'}: put corto ${fmtMoney(putLegs.shortC.strike)}, call corto ${fmtMoney(callLegs.shortC.strike)}.`);
+      reasons.push(`Strikes por Delta objetivo ${targetDelta.toFixed(2)}${strikesViaChain?` (${chainSourceLabel})`:' (aprox. vía Expected Move — sin acceso a cadena)'}: put corto ${fmtMoney(putLegs.shortC.strike)}, call corto ${fmtMoney(callLegs.shortC.strike)}.`);
       if(gexData){
         if(gexData.putWall!==null && putLegs.shortC.strike < gexData.putWall) reasons.push(`El strike put corto (${fmtMoney(putLegs.shortC.strike)}) queda más allá del Put Wall estimado (${fmtMoney(gexData.putWall)}) → menor soporte de gamma en esa zona.`);
         if(gexData.callWall!==null && callLegs.shortC.strike > gexData.callWall) reasons.push(`El strike call corto (${fmtMoney(callLegs.shortC.strike)}) queda más allá del Call Wall estimado (${fmtMoney(gexData.callWall)}) → menor resistencia de gamma en esa zona.`);
@@ -1167,7 +1193,7 @@
       const isCall = strategy==='callDebit';
       const legs = pickDebitLegs(isCall);
       strikesViaChain = legs.viaChain;
-      document.getElementById('strikeMethod').textContent = strikesViaChain ? `ATM + Delta ${targetDelta.toFixed(2)} (cadena real)` : 'ATM + Expected Move (sin cadena de opciones)';
+      document.getElementById('strikeMethod').textContent = strikesViaChain ? `ATM + Delta ${targetDelta.toFixed(2)} (${chainSourceLabel})` : 'ATM + Expected Move (sin cadena de opciones)';
       document.getElementById('shortLabel').textContent = 'Strike a comprar (largo, ATM)';
       document.getElementById('longLabel').textContent = 'Strike a vender (corto, reduce costo)';
       document.getElementById('shortStrike').textContent = fmtMoney(legs.buyC.strike);
@@ -1176,13 +1202,13 @@
       document.getElementById('longStrikeCall').textContent = '—';
       document.getElementById('spreadWidth').textContent = `$${legs.width.toFixed(2)}`;
       condorRow.style.display = 'none';
-      reasons.push(`Compra ATM (${fmtMoney(legs.buyC.strike)}) y venta a Delta objetivo ${targetDelta.toFixed(2)} (${fmtMoney(legs.sellC.strike)})${strikesViaChain?' usando la cadena real de opciones':' aproximado vía Expected Move'}, para reducir el costo neto del debit spread.`);
+      reasons.push(`Compra ATM (${fmtMoney(legs.buyC.strike)}) y venta a Delta objetivo ${targetDelta.toFixed(2)} (${fmtMoney(legs.sellC.strike)})${strikesViaChain?` usando ${chainSourceLabel}`:' aproximado vía Expected Move'}, para reducir el costo neto del debit spread.`);
       optData = { isCondor:false, legs:[buildOptionsMetrics(legs.sellC, legs.buyC, isCall)] };
     } else {
       const isCall = strategy==='call';
       const legs = pickCreditLegs(isCall);
       strikesViaChain = legs.viaChain;
-      document.getElementById('strikeMethod').textContent = strikesViaChain ? `Delta ${targetDelta.toFixed(2)} (cadena real)` : 'Expected Move (sin cadena de opciones)';
+      document.getElementById('strikeMethod').textContent = strikesViaChain ? `Delta ${targetDelta.toFixed(2)} (${chainSourceLabel})` : 'Expected Move (sin cadena de opciones)';
       document.getElementById('shortLabel').textContent = 'Strike corto (vender)';
       document.getElementById('longLabel').textContent = 'Strike largo (comprar)';
       document.getElementById('shortStrike').textContent = fmtMoney(legs.shortC.strike);
@@ -1191,7 +1217,7 @@
       document.getElementById('longStrikeCall').textContent = '—';
       document.getElementById('spreadWidth').textContent = `$${legs.width.toFixed(2)}`;
       condorRow.style.display = 'none';
-      reasons.push(`Strike corto por Delta objetivo ${targetDelta.toFixed(2)}${strikesViaChain?' (cadena real de opciones)':' (aprox. vía Expected Move — sin acceso a cadena)'}: ${fmtMoney(legs.shortC.strike)}; strike largo de protección: ${fmtMoney(legs.longC.strike)}.`);
+      reasons.push(`Strike corto por Delta objetivo ${targetDelta.toFixed(2)}${strikesViaChain?` (${chainSourceLabel})`:' (aprox. vía Expected Move — sin acceso a cadena)'}: ${fmtMoney(legs.shortC.strike)}; strike largo de protección: ${fmtMoney(legs.longC.strike)}.`);
       const wall = isCall ? (gexData&&gexData.callWall) : (gexData&&gexData.putWall);
       if(wall!==null && wall!==undefined){
         if(isCall && legs.shortC.strike > wall) reasons.push(`El strike corto (${fmtMoney(legs.shortC.strike)}) queda más allá del Call Wall estimado (${fmtMoney(wall)}) → menor resistencia de gamma en esa zona.`);
@@ -1203,7 +1229,7 @@
     // ---------- Panel de Opciones ----------
     const fmtOI = v => (v===null||v===undefined) ? 'N/D' : v.toLocaleString('es-ES');
     document.getElementById('optionsPanelSource').textContent = strikesViaChain
-      ? `Delta/Theta vía Black-Scholes con IV real de la cadena de ${sym} · OI/Volumen/Crédito reales del bróker de datos`
+      ? `Delta/Theta vía Black-Scholes · datos de ${chainSourceLabel} para ${sym} (${(chain&&chain.sourceNote)||'IV real'}) · OI/Volumen/Crédito reales`
       : `Delta/Theta/Crédito estimados (Black-Scholes con IV aproximada) · OI/Volumen no disponibles sin cadena de opciones`;
     if(!optData){
       ['optDelta','optTheta','optOI','optVolume','optPOP','optCredit','optMaxRisk','optRR'].forEach(id=>{ document.getElementById(id).textContent = '—'; });
@@ -1467,34 +1493,103 @@
     }
     return null;
   }
-  async function fetchOptionsChain(sym, targetDte){
-    // 1) pedido sin fecha -> vencimiento más próximo + lista completa de fechas
-    const base = await tryYahooOptionsRaw(sym, null);
-    if(!base || !base.expirationDates || !base.expirationDates.length){
-      state.chain[sym] = null;
-      return false;
+  function nzNum(row, keys){
+    for(const k of keys){
+      const v = row[k];
+      if(v===undefined || v===null || v==='') continue;
+      const n = parseFloat(String(v).replace(/,/g,''));
+      if(!isNaN(n)) return n;
     }
+    return null;
+  }
+  async function tryNasdaqOptionsRaw(sym){
+    const url = NASDAQ_OPTIONS(sym);
+    for(const wrap of CORS_PROXIES){
+      try{
+        const resp = await fetchWithTimeout(wrap(url), {cache:'no-store'});
+        if(!resp.ok) throw new Error('HTTP '+resp.status);
+        const json = await resp.json();
+        const rows = json && json.data && json.data.table && json.data.table.rows;
+        if(rows && rows.length) return rows;
+      }catch(e){ /* probar siguiente proxy */ }
+    }
+    return null;
+  }
+  async function fetchOptionsChainNasdaq(sym, targetDte, spotHint){
+    const rows = await tryNasdaqOptionsRaw(sym);
+    if(!rows) return null;
+    const byExpiry = {};
+    for(const row of rows){
+      const expStr = row.expiryDate || row.expiryGroup || row.expirygroup;
+      const strike = nzNum(row, ['strike']);
+      if(!expStr || strike===null) continue;
+      const ts = Math.floor(new Date(expStr).getTime()/1000);
+      if(!ts || isNaN(ts)) continue;
+      (byExpiry[ts] = byExpiry[ts] || []).push({ row, strike });
+    }
+    const expirations = Object.keys(byExpiry).map(Number).filter(n=>n>0);
+    if(!expirations.length) return null;
     const targetUnix = Math.floor(Date.now()/1000) + Math.max(targetDte,0)*86400;
-    const bestDate = pickExpiration(base.expirationDates, targetUnix);
-    const nearestDate = base.options && base.options[0] && base.options[0].expirationDate;
-    let chainForDate = base.options && base.options[0];
-    // 2) si el vencimiento más cercano al DTE pedido no es el que ya vino por
-    //    defecto, se pide explícitamente ese vencimiento.
-    if(bestDate && bestDate !== nearestDate){
-      const specific = await tryYahooOptionsRaw(sym, bestDate);
-      if(specific && specific.options && specific.options[0]) chainForDate = specific.options[0];
+    const bestExp = pickExpiration(expirations, targetUnix);
+    const chosen = byExpiry[bestExp];
+    const spot = spotHint;
+    const T = Math.max(targetDte,0.5)/365;
+    const calls=[], puts=[];
+    for(const {row, strike} of chosen){
+      const cBid=nzNum(row,['c_Bid']), cAsk=nzNum(row,['c_Ask']), cLast=nzNum(row,['c_Last']);
+      const cVol=nzNum(row,['c_Volume']), cOI=nzNum(row,['c_Openinterest','c_OpenInterest']);
+      const pBid=nzNum(row,['p_Bid']), pAsk=nzNum(row,['p_Ask']), pLast=nzNum(row,['p_Last']);
+      const pVol=nzNum(row,['p_Volume']), pOI=nzNum(row,['p_Openinterest','p_OpenInterest']);
+      const cMid = (cBid>0 && cAsk>0) ? (cBid+cAsk)/2 : cLast;
+      const pMid = (pBid>0 && pAsk>0) ? (pBid+pAsk)/2 : pLast;
+      // Nasdaq no da IV por contrato: se calcula por inversión de Black-Scholes
+      // a partir del precio de mercado real (bid/ask o último).
+      const cIv = (spot && cMid>0) ? impliedVolFromPrice(cMid, spot, strike, T, true) : null;
+      const pIv = (spot && pMid>0) ? impliedVolFromPrice(pMid, spot, strike, T, false) : null;
+      calls.push({ strike, impliedVolatility: cIv, openInterest: cOI, volume: cVol, bid: cBid, ask: cAsk, lastPrice: cLast });
+      puts.push({ strike, impliedVolatility: pIv, openInterest: pOI, volume: pVol, bid: pBid, ask: pAsk, lastPrice: pLast });
     }
-    if(!chainForDate){ state.chain[sym] = null; return false; }
-    const spot = (base.quote && base.quote.regularMarketPrice) || null;
-    state.chain[sym] = {
-      spot,
-      expirationDates: base.expirationDates,
-      expiration: chainForDate.expirationDate,
-      calls: chainForDate.calls || [],
-      puts: chainForDate.puts || [],
-      fetchedAt: Date.now(),
-    };
-    return true;
+    return { spot, expiration: bestExp, expirationDates: expirations, calls, puts };
+  }
+
+  async function fetchOptionsChain(sym, targetDte){
+    // 1) Yahoo primero (más completo cuando funciona: trae IV real por
+    //    contrato). Puede fallar por el cookie/crumb que Yahoo exige en sus
+    //    endpoints v7 y que los proxies CORS gratuitos no pueden replicar.
+    const base = await tryYahooOptionsRaw(sym, null);
+    if(base && base.expirationDates && base.expirationDates.length){
+      const targetUnix = Math.floor(Date.now()/1000) + Math.max(targetDte,0)*86400;
+      const bestDate = pickExpiration(base.expirationDates, targetUnix);
+      const nearestDate = base.options && base.options[0] && base.options[0].expirationDate;
+      let chainForDate = base.options && base.options[0];
+      if(bestDate && bestDate !== nearestDate){
+        const specific = await tryYahooOptionsRaw(sym, bestDate);
+        if(specific && specific.options && specific.options[0]) chainForDate = specific.options[0];
+      }
+      if(chainForDate && (chainForDate.calls||[]).length){
+        const spot = (base.quote && base.quote.regularMarketPrice) || null;
+        state.chain[sym] = {
+          spot, expirationDates: base.expirationDates, expiration: chainForDate.expirationDate,
+          calls: chainForDate.calls || [], puts: chainForDate.puts || [],
+          fetchedAt: Date.now(), source: 'Yahoo', sourceNote: 'IV real reportada por Yahoo',
+        };
+        return true;
+      }
+    }
+    // 2) Respaldo: Nasdaq (sin cookie/crumb). IV se calcula por inversión de
+    //    Black-Scholes desde el precio real de mercado de cada contrato.
+    const spotHint = state.data[sym] && state.data[sym].closes && state.data[sym].closes[state.data[sym].closes.length-1];
+    const nasdaqChain = await fetchOptionsChainNasdaq(sym, targetDte, spotHint);
+    if(nasdaqChain && nasdaqChain.calls.length && nasdaqChain.puts.length){
+      state.chain[sym] = {
+        spot: nasdaqChain.spot || spotHint, expirationDates: nasdaqChain.expirationDates, expiration: nasdaqChain.expiration,
+        calls: nasdaqChain.calls, puts: nasdaqChain.puts,
+        fetchedAt: Date.now(), source: 'Nasdaq', sourceNote: 'IV estimada por inversión de Black-Scholes desde el precio real',
+      };
+      return true;
+    }
+    state.chain[sym] = null;
+    return false;
   }
 
   function setStatus(msg, cls){
