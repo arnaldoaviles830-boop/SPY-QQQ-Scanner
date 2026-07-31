@@ -110,6 +110,8 @@
   .strategy-name{ font-family:var(--mono); font-size:22px; font-weight:700; }
   .strategy-name.put{ color:var(--bull); }
   .strategy-name.call{ color:var(--bear); }
+  .strategy-name.callDebit{ color:var(--bull); }
+  .strategy-name.putDebit{ color:var(--bear); }
   .strategy-name.condor{ color:var(--condor); }
   .strategy-name.wait{ color:var(--neutral); }
   .dte-select{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
@@ -650,22 +652,46 @@
     const neutralRsi = rsi > 40 && rsi < 60;
     const lowMovement = Math.abs(chg5Pct) < mv5Thresh && Math.abs(chgPct) < mvDayThresh;
     const highIvRank = ivRank !== null && ivRank >= ivRankMin;
+    // Umbral de IV Rank "bajo" (mismo corte que las zonas del gauge de IV Rank):
+    // con prima barata conviene comprar (debit) en vez de vender (credit).
+    const lowIvRank = ivRank !== null && ivRank < 30;
+
+    // Sesgo direccional: sobreventa/sobrecompra (reversión esperada) o
+    // tendencia+RSI en la misma dirección (continuación).
+    let bias = null, biasReason = '';
+    if(rsi<=rsiOversold){
+      bias = 'bull';
+      biasReason = `RSI en zona de sobreventa (≤ ${rsiOversold}) → sesgo hacia rebote de corto plazo.`;
+    } else if(rsi>=rsiOverbought){
+      bias = 'bear';
+      biasReason = `RSI en zona de sobrecompra (≥ ${rsiOverbought}) → sesgo hacia pausa/retroceso.`;
+    } else if(trend==='bull' && rsi>=50){
+      bias = 'bull';
+      biasReason = 'Tendencia alcista con RSI por encima de 50 → continuación.';
+    } else if(trend==='bear' && rsi<=50){
+      bias = 'bear';
+      biasReason = 'Tendencia bajista con RSI por debajo de 50 → continuación.';
+    }
 
     if(trend==='neutral' && neutralRsi && lowMovement && highIvRank){
       strategy = 'condor';
       reasons.push(`Sin sesgo direccional (tendencia neutral, RSI ${rsi.toFixed(1)}) y movimiento acotado (5 sesiones: ${chg5Pct.toFixed(2)}%), con IV Rank alto (${ivRank.toFixed(0)}%) → prima atractiva en ambos lados, se favorece <b>vender un Iron Condor</b> (Put Credit Spread + Call Credit Spread).`);
-    } else if(rsi<=rsiOversold){
-      strategy='put';
-      reasons.push(`RSI en zona de sobreventa (≤ ${rsiOversold}) → sesgo hacia rebote de corto plazo, se favorece <b>vender un Put Credit Spread</b> por debajo del precio.`);
-    } else if(rsi>=rsiOverbought){
-      strategy='call';
-      reasons.push(`RSI en zona de sobrecompra (≥ ${rsiOverbought}) → sesgo hacia pausa/retroceso, se favorece <b>vender un Call Credit Spread</b> por encima del precio.`);
-    } else if(trend==='bull' && rsi>=50){
-      strategy='put';
-      reasons.push('Tendencia alcista con RSI por encima de 50 → continuación, se favorece <b>vender un Put Credit Spread</b> (vender caídas).');
-    } else if(trend==='bear' && rsi<=50){
-      strategy='call';
-      reasons.push('Tendencia bajista con RSI por debajo de 50 → continuación, se favorece <b>vender un Call Credit Spread</b> (vender rebotes).');
+    } else if(bias==='bull'){
+      if(lowIvRank){
+        strategy='callDebit';
+        reasons.push(`${biasReason} Con IV Rank bajo (${ivRank.toFixed(0)}%), la prima de las opciones está barata → conviene <b>comprar un Call Debit Spread</b> en vez de vender premium.`);
+      } else {
+        strategy='put';
+        reasons.push(`${biasReason} ${ivRank!==null ? `Con IV Rank ${ivRank.toFixed(0)}% (no es bajo), ` : 'Sin dato de IV Rank, '}se favorece <b>vender un Put Credit Spread</b> por debajo del precio.`);
+      }
+    } else if(bias==='bear'){
+      if(lowIvRank){
+        strategy='putDebit';
+        reasons.push(`${biasReason} Con IV Rank bajo (${ivRank.toFixed(0)}%), la prima de las opciones está barata → conviene <b>comprar un Put Debit Spread</b> en vez de vender premium.`);
+      } else {
+        strategy='call';
+        reasons.push(`${biasReason} ${ivRank!==null ? `Con IV Rank ${ivRank.toFixed(0)}% (no es bajo), ` : 'Sin dato de IV Rank, '}se favorece <b>vender un Call Credit Spread</b> por encima del precio.`);
+      }
     } else if(trend==='neutral' && neutralRsi && lowMovement){
       strategy='wait';
       reasons.push(`Sin sesgo direccional y movimiento acotado (condiciones de rango) para este DTE, pero el IV Rank ${ivRank!==null ? 'es bajo ('+ivRank.toFixed(0)+'% < '+ivRankMin+'%)' : 'no está disponible'} → prima insuficiente para justificar un Iron Condor; se sugiere <b>esperar</b> a que suba el IV Rank.`);
@@ -677,6 +703,8 @@
     const nameEl = document.getElementById('strategyName');
     if(strategy==='put'){ nameEl.textContent='Put Credit Spread'; nameEl.className='strategy-name put'; }
     else if(strategy==='call'){ nameEl.textContent='Call Credit Spread'; nameEl.className='strategy-name call'; }
+    else if(strategy==='callDebit'){ nameEl.textContent='Call Debit Spread'; nameEl.className='strategy-name callDebit'; }
+    else if(strategy==='putDebit'){ nameEl.textContent='Put Debit Spread'; nameEl.className='strategy-name putDebit'; }
     else if(strategy==='condor'){ nameEl.textContent='Iron Condor'; nameEl.className='strategy-name condor'; }
     else { nameEl.textContent='Esperar / sin operación'; nameEl.className='strategy-name wait'; }
 
@@ -709,6 +737,19 @@
         document.getElementById('longStrikeCall').textContent = fmtMoney(longCall);
         condorRow.style.display = '';
         reasons.push(`Offset sugerido ≈ ${(offsetPct*100).toFixed(2)}% del precio a cada lado (volatilidad realizada de ${sym} × √${dte||1} DTE), redondeado a strikes enteros de $1. El punto máximo de pérdida por contrato está limitado al ancho de $1 menos el crédito recibido, en cada lado.`);
+      } else if(strategy==='callDebit' || strategy==='putDebit'){
+        // Debit spread: se compra cerca del dinero (ATM) y se vende un strike
+        // más allá en la misma dirección para abaratar el costo de entrada.
+        const buyStrike = Math.round(last);
+        const sellStrike = strategy==='callDebit' ? buyStrike + 1 : buyStrike - 1;
+        document.getElementById('shortLabel').textContent = 'Strike a comprar (largo, ATM)';
+        document.getElementById('longLabel').textContent = 'Strike a vender (corto, reduce costo)';
+        document.getElementById('shortStrike').textContent = fmtMoney(buyStrike);
+        document.getElementById('longStrike').textContent = fmtMoney(sellStrike);
+        document.getElementById('shortStrikeCall').textContent = '—';
+        document.getElementById('longStrikeCall').textContent = '—';
+        condorRow.style.display = 'none';
+        reasons.push(`Strike de compra cercano al precio actual (ATM) y venta $1 más allá en la dirección de la tendencia, para reducir el costo neto del debit spread.`);
       } else {
         let shortStrike, longStrike;
         if(strategy==='put'){
