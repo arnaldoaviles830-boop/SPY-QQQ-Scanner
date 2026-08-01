@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SPY / QQQ Scanner V2</title><style>
+:root{--bg:#090d13;--panel:#111824;--panel2:#151f2d;--line:#263244;--text:#eef4fb;--muted:#8fa0b5;--green:#3ddc97;--red:#ff6b73;--blue:#57a8ff;--gold:#f2c14e;--purple:#bd93f9}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070a0f,#0c121b 45%,#090d13);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:1180px;margin:auto;padding:18px}.topbar{display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16px}.brand h1{font-size:20px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:12px}.controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.control-group{display:flex;flex-direction:column;gap:5px}.control-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}.segmented{display:flex;gap:6px}.expiry-group select{min-width:175px}button,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-weight:650}button{cursor:pointer}.symbol.active{border-color:var(--blue);box-shadow:0 0 0 2px #57a8ff22}.refresh{background:var(--blue);color:#05101d;border:0}.status{padding:10px 13px;border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.status.err{color:var(--red)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 10px 30px #0004}.card h2{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800}.sub{color:var(--muted);font-size:12px;margin-top:6px}.wide{grid-column:span 2}.full{grid-column:1/-1}.positive{color:var(--green)}.negative{color:var(--red)}.gold{color:var(--gold)}.purple{color:var(--purple)}.table-wrap{overflow:auto;max-height:520px;border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;background:#101722;color:var(--muted);z-index:1}th,td{padding:9px 8px;border-bottom:1px solid #233044;text-align:right}th:first-child,td:first-child{text-align:left}.atm{background:#57a8ff12}.bar{height:8px;background:#263244;border-radius:8px;overflow:hidden;margin-top:10px}.bar>span{display:block;height:100%;background:var(--blue)}.note{color:var(--muted);font-size:11px;line-height:1.5}.strategy{font-size:18px;font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.metric{font-size:22px}.two{grid-template-columns:1fr}}@media(max-width:420px){.app{padding:12px}.grid{gap:9px}.card{padding:12px}.controls{width:100%;display:grid;grid-template-columns:1fr 1fr}.control-group{width:100%}.expiry-group{grid-column:1/-1}.expiry-group select{width:100%;min-width:0}.segmented{width:100%}.segmented button{flex:1}.controls select{width:100%}.refresh{grid-column:1/-1;width:100%}.status{width:100%}}
+
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><h1>SPY / QQQ Scanner <span class="gold">V2</span></h1><p>Cadena, GEX estimado, walls, max pain y spreads</p></div>
+    <div class="controls">
+      <div class="control-group">
+        <span class="control-label">Símbolo</span>
+        <div class="segmented">
+          <button class="symbol active" data-symbol="SPY">SPY</button>
+          <button class="symbol" data-symbol="QQQ">QQQ</button>
+        </div>
+      </div>
+      <div class="control-group expiry-group">
+        <span class="control-label">Expiración</span>
+        <select id="expiry" aria-label="Seleccionar fecha de expiración"></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Vista</span>
+        <select id="expiryFilter" aria-label="Filtrar expiraciones">
+          <option value="all">Todas</option>
+          <option value="0dte">0 DTE</option>
+          <option value="next">Próxima</option>
+          <option value="weekly">Semanal</option>
+          <option value="monthly">Mensual</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Delta objetivo</span>
+        <select id="delta"><option value=".10">Δ 0.10</option><option value=".15" selected>Δ 0.15</option><option value=".20">Δ 0.20</option><option value=".25">Δ 0.25</option></select>
+      </div>
+      <button id="refresh" class="refresh">Actualizar</button>
+    </div>
+  </header>
+  <div id="status" class="status">Preparando conexión…</div>
+
+  <section class="grid" style="margin-top:12px">
+    <article class="card"><h2>Precio</h2><div id="spot" class="metric">—</div><div id="source" class="sub">—</div></article>
+    <article class="card"><h2>GEX neto</h2><div id="netGex" class="metric">—</div><div class="sub">Calls positivos; puts negativos</div></article>
+    <article class="card"><h2>Call Wall</h2><div id="callWall" class="metric positive">—</div><div id="callWallOi" class="sub">—</div></article>
+    <article class="card"><h2>Put Wall</h2><div id="putWall" class="metric negative">—</div><div id="putWallOi" class="sub">—</div></article>
+
+    <article class="card"><h2>Max Pain</h2><div id="maxPain" class="metric purple">—</div><div class="sub">Estimación por open interest</div></article>
+    <article class="card"><h2>Zero Gamma</h2><div id="zeroGamma" class="metric gold">—</div><div class="sub">Cruce acumulado aproximado</div></article>
+    <article class="card"><h2>IV ATM estimada</h2><div id="atmIv" class="metric">—</div><div class="sub">Inferida de precios bid/ask</div></article>
+    <article class="card"><h2>Expected Move</h2><div id="expectedMove" class="metric">—</div><div class="sub">1 desviación estándar</div></article>
+
+    <article class="card wide"><h2>Estrategia sugerida</h2><div id="strategy" class="strategy">—</div><div id="strategyDetail" class="sub">—</div></article>
+    <article class="card wide"><h2>Estado del mercado por gamma</h2><div id="regime" class="strategy">—</div><div id="regimeDetail" class="sub">—</div></article>
+
+    <article class="card full"><h2>Cadena seleccionada</h2><div class="table-wrap"><table>
+      <thead><tr><th>Strike</th><th>Call Δ</th><th>Call IV</th><th>Call OI</th><th>Call GEX</th><th>Put GEX</th><th>Put OI</th><th>Put IV</th><th>Put Δ</th></tr></thead>
+      <tbody id="chainBody"></tbody></table></div>
+    </article>
+    <article class="card full note">GEX es una estimación: OI × gamma Black‑Scholes × 100 × precio² × 1%. La IV se infiere del precio medio de cada contrato. No representa posicionamiento institucional confirmado ni constituye recomendación financiera.</article>
+  </section>
+</main>
+<script>
+const CONFIG = {
+  workerBase: "https://young-term-3722.arnaldo-aviles830.workers.dev",
+  refreshMs: 120000,
+  riskFreeRate: 0.043,
+  defaultSymbol: "SPY",
+  defaultDelta: 0.15,
+  spreadWidth: 1,
+  maxRows: 28
+};
+
+
+const SQRT_2PI = Math.sqrt(2 * Math.PI);
+
+function normPdf(x) {
+  return Math.exp(-0.5 * x * x) / SQRT_2PI;
+}
+
+function normCdf(x) {
+  const sign = x < 0 ? -1 : 1;
+  const z = Math.abs(x) / Math.sqrt(2);
+  const t = 1 / (1 + 0.3275911 * z);
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429;
+  const erf = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-z*z);
+  return 0.5 * (1 + sign * erf);
+}
+
+function bsPrice(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) return 0;
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  if (type === "call") return S*normCdf(d1) - K*Math.exp(-r*T)*normCdf(d2);
+  return K*Math.exp(-r*T)*normCdf(-d2) - S*normCdf(-d1);
+}
+
+function impliedVol(type, marketPrice, S, K, T, r) {
+  if (!(marketPrice > 0 && S > 0 && K > 0 && T > 0)) return null;
+  const intrinsic = type === "call" ? Math.max(0, S-K) : Math.max(0, K-S);
+  if (marketPrice < intrinsic) return null;
+  let lo = 0.01, hi = 5;
+  for (let i=0; i<70; i++) {
+    const mid = (lo+hi)/2;
+    const p = bsPrice(type, S, K, T, r, mid);
+    if (p > marketPrice) hi = mid; else lo = mid;
+  }
+  const iv = (lo+hi)/2;
+  return Number.isFinite(iv) ? iv : null;
+}
+
+function greeks(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) {
+    return {delta:null, gamma:null, theta:null};
+  }
+  const rt = Math.sqrt(T);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T)/(sigma*rt);
+  const d2 = d1 - sigma*rt;
+  const gamma = normPdf(d1)/(S*sigma*rt);
+  const delta = type === "call" ? normCdf(d1) : normCdf(d1)-1;
+  const first = -(S*normPdf(d1)*sigma)/(2*rt);
+  const theta = type === "call"
+    ? (first - r*K*Math.exp(-r*T)*normCdf(d2))/365
+    : (first + r*K*Math.exp(-r*T)*normCdf(-d2))/365;
+  return {delta, gamma, theta};
+}
+
+function gexValue(type, oi, gamma, spot) {
+  if (!(oi >= 0 && gamma >= 0 && spot > 0)) return 0;
+  const raw = oi * gamma * 100 * spot * spot * 0.01;
+  return type === "call" ? raw : -raw;
+}
+
+function maxPain(rows) {
+  if (!rows.length) return null;
+  const strikes = [...new Set(rows.map(r => r.strike))].sort((a,b)=>a-b);
+  let best = null;
+  for (const settle of strikes) {
+    let pain = 0;
+    for (const r of rows) {
+      pain += Math.max(0, settle-r.strike) * r.callOi * 100;
+      pain += Math.max(0, r.strike-settle) * r.putOi * 100;
+    }
+    if (!best || pain < best.pain) best = {strike:settle, pain};
+  }
+  return best?.strike ?? null;
+}
+
+
+
+function num(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/[$,%\s,]/g, "");
+  if (!s || s === "--") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseLastTrade(text) {
+  const m = String(text || "").match(/\$([\d,.]+)/);
+  return m ? num(m[1]) : null;
+}
+
+function expiryYear(month, day, now = new Date()) {
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const mm = months[month];
+  if (mm === undefined) return now.getFullYear();
+  let y = now.getFullYear();
+  const d = new Date(y, mm, day, 16, 0, 0);
+  if (d.getTime() < now.getTime() - 86400000*30) y++;
+  return y;
+}
+
+function normalizeDate(label) {
+  if (!label) return null;
+  const m = String(label).match(/([A-Z][a-z]{2})\s+(\d{1,2})(?:,\s*(\d{4}))?/);
+  if (!m) return null;
+  const monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const year = m[3] ? Number(m[3]) : expiryYear(m[1], Number(m[2]));
+  return new Date(year, monthMap[m[1]], Number(m[2]), 16, 0, 0);
+}
+
+async function fetchChain(symbol) {
+  const url = `${CONFIG.workerBase}/options?symbol=${encodeURIComponent(symbol)}`;
+  const response = await fetch(url, {cache:"no-store"});
+  if (!response.ok) throw new Error(`Worker HTTP ${response.status}`);
+  const payload = await response.json();
+  const table = payload?.data?.table;
+  const rawRows = table?.rows;
+  if (!Array.isArray(rawRows)) throw new Error("La respuesta no contiene la cadena.");
+  const spot = parseLastTrade(payload?.data?.lastTrade);
+
+  let currentExpiry = null;
+  const rows = [];
+  for (const row of rawRows) {
+    if (row.expirygroup) {
+      currentExpiry = normalizeDate(row.expirygroup);
+      continue;
+    }
+    const strike = num(row.strike);
+    if (!strike) continue;
+    const explicit = normalizeDate(row.expiryDate);
+    const expiry = explicit || currentExpiry;
+    if (!expiry) continue;
+
+    rows.push({
+      expiry,
+      expiryKey: expiry.toISOString().slice(0,10),
+      strike,
+      callBid: num(row.c_Bid),
+      callAsk: num(row.c_Ask),
+      callLast: num(row.c_Last),
+      callVolume: num(row.c_Volume) || 0,
+      callOi: num(row.c_Openinterest) || 0,
+      putBid: num(row.p_Bid),
+      putAsk: num(row.p_Ask),
+      putLast: num(row.p_Last),
+      putVolume: num(row.p_Volume) || 0,
+      putOi: num(row.p_Openinterest) || 0
+    });
+  }
+  return {symbol, spot, rows, fetchedAt:new Date(), source:"Nasdaq vía Cloudflare"};
+}
+
+function midpoint(bid, ask, last) {
+  if (bid !== null && ask !== null && ask >= bid && ask > 0) return (bid+ask)/2;
+  return last && last > 0 ? last : null;
+}
+
+function enrichRows(rows, spot) {
+  const now = Date.now();
+  return rows.map(row => {
+    const T = Math.max((row.expiry.getTime()-now)/(365*24*3600*1000), 0.5/365);
+    const callMid = midpoint(row.callBid,row.callAsk,row.callLast);
+    const putMid = midpoint(row.putBid,row.putAsk,row.putLast);
+    const callIv = impliedVol("call",callMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const putIv = impliedVol("put",putMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const cg = callIv ? greeks("call",spot,row.strike,T,CONFIG.riskFreeRate,callIv) : {};
+    const pg = putIv ? greeks("put",spot,row.strike,T,CONFIG.riskFreeRate,putIv) : {};
+    const callGex = gexValue("call",row.callOi,cg.gamma,spot);
+    const putGex = gexValue("put",row.putOi,pg.gamma,spot);
+    return {...row, T, callMid, putMid, callIv, putIv, callDelta:cg.delta,
+      putDelta:pg.delta, callGamma:cg.gamma, putGamma:pg.gamma,
+      callTheta:cg.theta, putTheta:pg.theta, callGex, putGex,
+      netGex:callGex+putGex};
+  });
+}
+
+
+
+const state = {symbol:CONFIG.defaultSymbol, raw:null, rows:[], timer:null};
+const $ = id => document.getElementById(id);
+const money = n => Number.isFinite(n) ? `$${n.toFixed(2)}` : "—";
+const pct = n => Number.isFinite(n) ? `${(n*100).toFixed(1)}%` : "—";
+const compact = n => {
+  if (!Number.isFinite(n)) return "—";
+  const a=Math.abs(n), s=n<0?"-":"";
+  if(a>=1e9)return s+(a/1e9).toFixed(2)+"B";
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3)return s+(a/1e3).toFixed(1)+"K";
+  return Math.round(n).toString();
+};
+
+function setStatus(text, kind=""){ const e=$("status"); e.textContent=text; e.className=`status ${kind}`; }
+
+function expiries(rows){
+  return [...new Map(rows.map(r=>[r.expiryKey,r.expiry])).entries()].sort((a,b)=>a[1]-b[1]);
+}
+
+function isThirdFriday(date){
+  return date.getDay()===5 && date.getDate()>=15 && date.getDate()<=21;
+}
+
+function filteredExpiries(list, mode){
+  if(!list.length) return list;
+  const now = new Date();
+  const todayKey = new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString().slice(0,10);
+  if(mode==="0dte") return list.filter(([key])=>key===todayKey);
+  if(mode==="next") return list.slice(0,1);
+  if(mode==="monthly") return list.filter(([,date])=>isThirdFriday(date));
+  if(mode==="weekly") return list.filter(([,date])=>date.getDay()===5 && !isThirdFriday(date));
+  return list;
+}
+
+function populateExpiry(preserveKey=""){
+  const all = expiries(state.rows);
+  const mode = $("expiryFilter")?.value || "all";
+  let shown = filteredExpiries(all,mode);
+  if(!shown.length) shown = all;
+  $("expiry").innerHTML = shown.map(([key,date])=>{
+    const dte = Math.max(0,Math.ceil((date-Date.now())/86400000));
+    const label = `${date.toLocaleDateString("es-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})} · ${dte} DTE`;
+    return `<option value="${key}">${label}</option>`;
+  }).join("");
+  if(preserveKey && shown.some(([k])=>k===preserveKey)) $("expiry").value=preserveKey;
+}
+
+function selectedRows(){
+  const key=$("expiry").value;
+  return state.rows.filter(r=>r.expiryKey===key);
+}
+
+function nearestByDelta(rows, side, target){
+  const candidates = rows.filter(r => side==="put" ? Number.isFinite(r.putDelta) : Number.isFinite(r.callDelta));
+  return candidates.sort((a,b)=>{
+    const da=Math.abs(Math.abs(side==="put"?a.putDelta:a.callDelta)-target);
+    const db=Math.abs(Math.abs(side==="put"?b.putDelta:b.callDelta)-target);
+    return da-db;
+  })[0] || null;
+}
+
+function zeroGamma(rows){
+  const sorted=[...rows].sort((a,b)=>a.strike-b.strike);
+  let cum=0, prev=null;
+  for(const r of sorted){
+    const next=cum+r.netGex;
+    if(prev && Math.sign(cum)!==Math.sign(next)){
+      const ratio=Math.abs(cum)/(Math.abs(cum)+Math.abs(next));
+      return prev.strike+(r.strike-prev.strike)*ratio;
+    }
+    cum=next; prev=r;
+  }
+  return sorted.reduce((best,r)=>Math.abs(r.netGex)<Math.abs(best.netGex)?r:best,sorted[0])?.strike ?? null;
+}
+
+function render(){
+  const rows=selectedRows();
+  const spot=state.raw?.spot;
+  if(!rows.length || !spot) return;
+
+  const net=rows.reduce((s,r)=>s+r.netGex,0);
+  const callWall=[...rows].sort((a,b)=>b.callOi-a.callOi)[0];
+  const putWall=[...rows].sort((a,b)=>b.putOi-a.putOi)[0];
+  const mp=maxPain(rows);
+  const zg=zeroGamma(rows);
+  const atm=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))[0];
+  const atmIv=[atm?.callIv,atm?.putIv].filter(Number.isFinite);
+  const iv=atmIv.length?atmIv.reduce((a,b)=>a+b,0)/atmIv.length:null;
+  const days=Math.max((rows[0].expiry-Date.now())/86400000,0.5);
+  const em=iv?spot*iv*Math.sqrt(days/365):null;
+
+  $("spot").textContent=money(spot);
+  $("source").textContent=`${state.raw.source} · ${state.raw.fetchedAt.toLocaleTimeString()}`;
+  $("netGex").textContent=compact(net); $("netGex").className=`metric ${net>=0?"positive":"negative"}`;
+  $("callWall").textContent=money(callWall?.strike); $("callWallOi").textContent=`OI ${compact(callWall?.callOi)}`;
+  $("putWall").textContent=money(putWall?.strike); $("putWallOi").textContent=`OI ${compact(putWall?.putOi)}`;
+  $("maxPain").textContent=money(mp); $("zeroGamma").textContent=money(zg);
+  $("atmIv").textContent=pct(iv); $("expectedMove").textContent=em?`±${money(em)}`:"—";
+
+  const target=Number($("delta").value);
+  const put=nearestByDelta(rows,"put",target), call=nearestByDelta(rows,"call",target);
+  const width=CONFIG.spreadWidth;
+  if(net>0){
+    $("strategy").textContent="Iron Condor conservador / Put Credit Spread";
+    $("strategyDetail").textContent=put&&call
+      ? `PCS ${money(put.strike)}/${money(put.strike-width)} · CCS ${money(call.strike)}/${money(call.strike+width)} · objetivo |Δ|≈${target}`
+      : "No hay contratos suficientes para construir strikes.";
+  }else{
+    $("strategy").textContent="Sesgo direccional; reducir tamaño";
+    $("strategyDetail").textContent=spot<zg && put
+      ? `Gamma negativa y precio bajo Zero Gamma. Referencia PCS: ${money(put.strike)}/${money(put.strike-width)}, solo con confirmación alcista.`
+      : call ? `Gamma negativa. Referencia CCS: ${money(call.strike)}/${money(call.strike+width)}, solo con confirmación bajista.` : "Esperar mejor estructura.";
+  }
+  $("regime").textContent=net>=0?"Gamma positiva: posible compresión":"Gamma negativa: posible expansión";
+  $("regimeDetail").textContent=net>=0
+    ?"Los movimientos pueden tender a revertir hacia strikes con mayor OI."
+    :"Puede aumentar la velocidad del movimiento; walls y Zero Gamma ganan importancia.";
+
+  const visible=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))
+    .slice(0,CONFIG.maxRows).sort((a,b)=>a.strike-b.strike);
+  $("chainBody").innerHTML=visible.map(r=>`<tr class="${Math.abs(r.strike-spot)<1?"atm":""}">
+    <td>${r.strike.toFixed(2)}</td><td>${Number.isFinite(r.callDelta)?r.callDelta.toFixed(3):"—"}</td>
+    <td>${pct(r.callIv)}</td><td>${compact(r.callOi)}</td><td class="positive">${compact(r.callGex)}</td>
+    <td class="negative">${compact(r.putGex)}</td><td>${compact(r.putOi)}</td><td>${pct(r.putIv)}</td>
+    <td>${Number.isFinite(r.putDelta)?r.putDelta.toFixed(3):"—"}</td></tr>`).join("");
+}
+
+async function load(preserveExpiry=false){
+  try{
+    setStatus(`Consultando ${state.symbol}…`);
+    $("refresh").disabled=true;
+    const old=$("expiry").value;
+    const raw=await fetchChain(state.symbol);
+    if(!raw.spot) throw new Error("Nasdaq no devolvió el precio.");
+    state.raw=raw; state.rows=enrichRows(raw.rows,raw.spot);
+    populateExpiry(preserveExpiry ? old : "");
+    render(); setStatus(`${state.symbol} actualizado correctamente. Próxima actualización automática en 2 minutos.`,"ok");
+  }catch(err){setStatus(`Error: ${err.message}`,"err");}
+  finally{$("refresh").disabled=false;}
+}
+
+document.querySelectorAll(".symbol").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".symbol").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); state.symbol=btn.dataset.symbol; load(false);
+}));
+$("expiry").addEventListener("change",render);
+$("expiryFilter").addEventListener("change",()=>{ populateExpiry(""); render(); });
+$("delta").addEventListener("change",render);
+$("refresh").addEventListener("click",()=>load(true));
+
+load(false);
+state.timer=setInterval(()=>load(true),CONFIG.refreshMs);
+
+</script>
+</body></html>
