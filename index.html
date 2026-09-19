@@ -86,7 +86,7 @@ const CONFIG = {
   defaultSymbol: "SPY",
   defaultDelta: 0.20,
   maxRisk: 200,
-  minConfidence: 80,
+  minConfidence: 70,
   maxRows: 28
 };
 
@@ -453,13 +453,19 @@ function buildDecision(rows,spot,net,zg,mp,iv,em,target){
   const dte=Math.max(0,Math.ceil((rows[0].expiry-Date.now())/86400000));
   const isZeroDte=dte===0;
   const riskLimit=isZeroDte?100:CONFIG.maxRisk;
-  const confidenceLimit=isZeroDte?85:CONFIG.minConfidence;
+  const selectedExpiryType = expiryType(rows[0].expiry);
+const confidenceLimit =
+  isZeroDte
+    ? 70
+    : selectedExpiryType === "monthly"
+      ? 75
+      : 70;
   const invalidDte=dte>7;
   const exceedsRisk=quote&&quote.risk>riskLimit;
   if(exceedsRisk){confidence-=25;reasons.push(`Riesgo estimado supera el límite obligatorio de $${riskLimit}${isZeroDte?" para 0DTE":""}.`);}
   if(isZeroDte){
     confidence-=5;
-    reasons.push("0DTE habilitado con controles reforzados: confianza mínima 85% y riesgo máximo $100.");
+    reasons.push("0DTE habilitado: confianza mínima 70% y riesgo máximo $100.");
     if(movement.direction==="NEUTRAL"){confidence=Math.min(confidence,70);reasons.push("0DTE neutral o contradictorio: operación bloqueada.");}
   }
   if(invalidDte){reasons.push(`Vencimiento de ${dte} DTE fuera del rango máximo permitido de 0–7 días.`);}
