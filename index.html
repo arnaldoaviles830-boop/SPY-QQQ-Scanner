@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="icon" type="image/png" href="market-options-scanner-logo.png"><link rel="apple-touch-icon" href="market-options-scanner-logo.png">
-<title>Market Options Scanner V4.14</title><style>
+<title>Market Options Scanner V4.15</title><style>
 :root{--bg:#090d13;--panel:#111824;--panel2:#151f2d;--line:#263244;--text:#eef4fb;--muted:#8fa0b5;--green:#3ddc97;--red:#ff6b73;--blue:#57a8ff;--gold:#f2c14e;--purple:#bd93f9}
 .brand{display:flex;align-items:center;gap:12px}.brand-logo{width:62px;height:62px;object-fit:contain;filter:drop-shadow(0 0 12px #19cfff38);flex:0 0 auto}.brand-copy h1{font-size:20px;margin:0}.brand-copy p{margin:4px 0 0;color:var(--muted);font-size:12px}@media(max-width:420px){.brand-logo{width:52px;height:52px}}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070a0f,#0c121b 45%,#090d13);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:1180px;margin:auto;padding:18px}.topbar{display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16px}.brand h1{font-size:20px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:12px}.controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.control-group{display:flex;flex-direction:column;gap:5px}.control-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}.segmented{display:flex;gap:6px}.expiry-group select{min-width:175px}button,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-weight:650}button{cursor:pointer}.symbol.active{border-color:var(--blue);box-shadow:0 0 0 2px #57a8ff22}.refresh{background:var(--blue);color:#05101d;border:0}.status{padding:10px 13px;border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.status.err{color:var(--red)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 10px 30px #0004}.card h2{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800}.sub{color:var(--muted);font-size:12px;margin-top:6px}.wide{grid-column:span 2}.full{grid-column:1/-1}.positive{color:var(--green)}.negative{color:var(--red)}.gold{color:var(--gold)}.purple{color:var(--purple)}.table-wrap{overflow:auto;max-height:520px;border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;background:#101722;color:var(--muted);z-index:1}th,td{padding:9px 8px;border-bottom:1px solid #233044;text-align:right}th:first-child,td:first-child{text-align:left}.atm{background:#57a8ff12}.bar{height:8px;background:#263244;border-radius:8px;overflow:hidden;margin-top:10px}.bar>span{display:block;height:100%;background:var(--blue)}.note{color:var(--muted);font-size:11px;line-height:1.5}.strategy{font-size:18px;font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.metric{font-size:22px}.two{grid-template-columns:1fr}}@media(max-width:420px){.app{padding:12px}.grid{gap:9px}.card{padding:12px}.controls{width:100%;display:grid;grid-template-columns:1fr 1fr}.control-group{width:100%}.expiry-group{grid-column:1/-1}.expiry-group select{width:100%;min-width:0}.segmented{width:100%}.segmented button{flex:1}.controls select{width:100%}.refresh{grid-column:1/-1;width:100%}.status{width:100%}}
@@ -16,7 +16,7 @@
 <body>
 <main class="app">
   <header class="topbar">
-    <div class="brand"><img class="brand-logo" src="market-options-scanner-logo.png" alt="Logo Market Options Scanner"><div class="brand-copy"><h1>Market Options Scanner <span class="gold">V4.14</span></h1><p>SPY · SPX · XSP · QQQ · NDX · XND | régimen, volatilidad y spreads</p></div></div>
+    <div class="brand"><img class="brand-logo" src="market-options-scanner-logo.png" alt="Logo Market Options Scanner"><div class="brand-copy"><h1>Market Options Scanner <span class="gold">V4.15</span></h1><p>SPY · SPX · XSP · QQQ · NDX · XND | régimen, volatilidad y spreads</p></div></div>
     <div class="controls">
       <div class="control-group">
         <span class="control-label">Símbolo</span>
@@ -108,6 +108,7 @@ const INSTRUMENTS={
   NDX:{width:5,family:"Nasdaq-100 Index",settlement:"Efectivo · europeo"},
   XND:{width:1,family:"Micro Nasdaq-100 Index",settlement:"Efectivo · europeo"}
 };
+const CBOE_SYMBOLS=new Set(["SPX","XSP","NDX","XND"]);
 
 
 const SQRT_2PI = Math.sqrt(2 * Math.PI);
@@ -267,7 +268,40 @@ async function fetchChain(symbol) {
     });
   }
   const source=payload?.meta?.source ? `${payload.meta.source} vía Cloudflare` : "Nasdaq vía Cloudflare";
-  return {symbol, spot, rows, fetchedAt:new Date(), source};
+  return {symbol, spot, rows, fetchedAt:new Date(), source, chainTimestamp:payload?.meta?.timestamp||null};
+}
+
+async function fetchIndexQuote(symbol){
+  const response=await fetch(`${CONFIG.workerBase}/quote?symbol=${encodeURIComponent(symbol)}`,{cache:"no-store"});
+  const payload=await response.json();
+  if(!response.ok||!(Number(payload.price)>0)||!Number.isFinite(Date.parse(payload.timestamp))){
+    throw new Error(payload.error||`Cotización ${symbol} no disponible`);
+  }
+  return payload;
+}
+
+function indexMarketOpen(){
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const get=key=>parts.find(x=>x.type===key)?.value;
+  const minute=Number(get("hour"))*60+Number(get("minute"));
+  return !["Sat","Sun"].includes(get("weekday"))&&minute>=600&&minute<=960;
+}
+
+function chainTooOld(timestamp){
+  if(!timestamp)return true;
+  // Cboe's timestamp has no timezone. Test UTC and Eastern interpretations.
+  const iso=String(timestamp).replace(" ","T");
+  const utc=Date.parse(iso+"Z"), eastern=Date.parse(iso+"-04:00"), winter=Date.parse(iso+"-05:00");
+  const mostRecent=Math.max(utc||0,eastern||0,winter||0);
+  return !mostRecent||Date.now()-mostRecent>90*60000;
+}
+
+function clearAnalysis(){
+  state.raw=null;state.rows=[];
+  $("expiry").replaceChildren();
+  for(const id of ["netGex","callWall","callWallOi","putWall","putWallOi","maxPain","zeroGamma","atmIv","expectedMove","strategy","strategyDetail","regime","regimeDetail","movementDirection","movementScore","movementPcr","movementSkew","planStrikes","planPremium","planRisk","planConfidence"]){$(id).textContent="—";}
+  for(const id of ["movementFactors","strategyRanking","expiryBadge","strikeAlerts","planReasons","chainBody"]){$(id).replaceChildren();}
+  $("confidenceBar").style.width="0%";
 }
 
 function midpoint(bid, ask, last) {
@@ -711,22 +745,46 @@ function render(){
     <td>${Number.isFinite(r.putDelta)?r.putDelta.toFixed(3):"—"}</td></tr>`).join("");
 }
 
+let loadSequence=0;
 async function load(preserveExpiry=false){
+  const sequence=++loadSequence,symbol=state.symbol,isIndex=Boolean(CBOE_SYMBOLS.has(symbol));
   try{
-    setStatus(`Consultando ${state.symbol}…`);
+    setStatus(`Consultando ${symbol}…`);
     $("refresh").disabled=true;
     const old=$("expiry").value;
-    const raw=await fetchChain(state.symbol);
+    let quote=null;
+    if(isIndex){
+      clearAnalysis();$("spot").textContent="—";$("source").textContent="Consultando precio independiente…";
+      try{
+        quote=await fetchIndexQuote(symbol);
+        if(sequence!==loadSequence)return;
+        $("spot").textContent=money(quote.price);
+        $("source").textContent=`${quote.source} · ${new Date(quote.timestamp).toLocaleString("es-PR")} · ${quote.delayed?"retrasado":"cotización"}`;
+      }catch(error){if(sequence!==loadSequence)return;$("source").textContent=`Precio no disponible: ${error.message}`;}
+      if(!quote){setStatus(`No hay precio verificable para ${symbol}; análisis desactivado.`,"err");return;}
+    }
+    let raw;
+    try{raw=await fetchChain(symbol)}catch(error){
+      if(sequence!==loadSequence)return;
+      if(isIndex){setStatus(`${symbol}: precio actualizado; cadena de opciones no disponible (${error.message}). Análisis desactivado.`,"err");return;}
+      throw error;
+    }
+    if(sequence!==loadSequence)return;
+    if(isIndex&&chainTooOld(raw.chainTimestamp)){
+      setStatus(`${symbol}: precio independiente actualizado; la cadena Cboe está atrasada (${raw.chainTimestamp||"sin hora"}). Análisis desactivado.`,"err");
+      return;
+    }
+    if(isIndex){raw.spot=quote.price;raw.source=`${quote.source} (precio) · Cboe (opciones ${raw.chainTimestamp||"sin hora"})`;}
     if(!raw.spot) throw new Error("Nasdaq no devolvió el precio.");
     state.raw=raw; state.rows=enrichRows(raw.rows,raw.spot);
     const available=populateExpiry(preserveExpiry ? old : "");
     if(available){
-      render(); setStatus(`${state.symbol} actualizado correctamente. Próxima actualización automática en 2 minutos.`,"ok");
+      render(); setStatus(`${symbol} actualizado correctamente. Próxima actualización automática en 2 minutos.`,"ok");
     }else{
-      setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${state.symbol}.`,"err");
+      setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${symbol}.`,"err");
     }
-  }catch(err){setStatus(`Error: ${err.message}`,"err");}
-  finally{$("refresh").disabled=false;}
+  }catch(err){if(sequence===loadSequence)setStatus(`Error: ${err.message}`,"err");}
+  finally{if(sequence===loadSequence)$("refresh").disabled=false;}
 }
 
 document.querySelectorAll(".symbol").forEach(btn=>btn.addEventListener("click",()=>{
