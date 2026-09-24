@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" type="image/png" href="market-options-scanner-logo.png"><link rel="apple-touch-icon" href="market-options-scanner-logo.png">
+<title>Market Options Scanner V4.18</title><style>
+:root{--bg:#090d13;--panel:#111824;--panel2:#151f2d;--line:#263244;--text:#eef4fb;--muted:#8fa0b5;--green:#3ddc97;--red:#ff6b73;--blue:#57a8ff;--gold:#f2c14e;--purple:#bd93f9}
+.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:62px;height:62px;object-fit:contain;filter:drop-shadow(0 0 12px #19cfff38);flex:0 0 auto}.brand-copy h1{font-size:20px;margin:0}.brand-copy p{margin:4px 0 0;color:var(--muted);font-size:12px}@media(max-width:420px){.brand-logo{width:52px;height:52px}}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070a0f,#0c121b 45%,#090d13);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:1180px;margin:auto;padding:18px}.topbar{display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16px}.brand h1{font-size:20px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:12px}.controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.control-group{display:flex;flex-direction:column;gap:5px}.control-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}.segmented{display:flex;gap:6px}.expiry-group select{min-width:175px}button,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-weight:650}button{cursor:pointer}.symbol.active{border-color:var(--blue);box-shadow:0 0 0 2px #57a8ff22}.refresh{background:var(--blue);color:#05101d;border:0}.status{padding:10px 13px;border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.status.err{color:var(--red)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 10px 30px #0004}.card h2{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800}.sub{color:var(--muted);font-size:12px;margin-top:6px}.wide{grid-column:span 2}.full{grid-column:1/-1}.positive{color:var(--green)}.negative{color:var(--red)}.gold{color:var(--gold)}.purple{color:var(--purple)}.table-wrap{overflow:auto;max-height:520px;border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;background:#101722;color:var(--muted);z-index:1}th,td{padding:9px 8px;border-bottom:1px solid #233044;text-align:right}th:first-child,td:first-child{text-align:left}.atm{background:#57a8ff12}.bar{height:8px;background:#263244;border-radius:8px;overflow:hidden;margin-top:10px}.bar>span{display:block;height:100%;background:var(--blue)}.note{color:var(--muted);font-size:11px;line-height:1.5}.strategy{font-size:18px;font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.metric{font-size:22px}.two{grid-template-columns:1fr}}@media(max-width:420px){.app{padding:12px}.grid{gap:9px}.card{padding:12px}.controls{width:100%;display:grid;grid-template-columns:1fr 1fr}.control-group{width:100%}.expiry-group{grid-column:1/-1}.expiry-group select{width:100%;min-width:0}.segmented{width:100%}.segmented button{flex:1}.controls select{width:100%}.refresh{grid-column:1/-1;width:100%}.status{width:100%}}
+
+.badge{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:999px;font-size:10px;font-weight:800;margin-right:5px}.badge.daily{color:var(--blue)}.badge.weekly{color:var(--gold)}.badge.monthly{color:var(--purple)}.decision{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.decision div{background:#0b111a;border:1px solid var(--line);border-radius:10px;padding:10px}.decision b{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:5px}.reasons{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.55}.confidence{height:9px;background:#263244;border-radius:8px;overflow:hidden;margin-top:9px}.confidence span{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold),var(--green))}@media(max-width:760px){.decision{grid-template-columns:1fr 1fr}}@media(max-width:420px){.segmented{display:grid!important;grid-template-columns:repeat(3,1fr)}.segmented button{padding:9px 5px!important}.decision{grid-template-columns:1fr}}
+.strike-alerts{display:grid;gap:7px;margin-top:10px}.strike-alert{border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700}.strike-alert.yellow{color:#ffd166;background:#ffd16615;border:1px solid #ffd16666}.strike-alert.red{color:#ff6b73;background:#ff5f6d15;border:1px solid #ff5f6d66}.strike-alert.green{color:#3ddc97;background:#3ddc9712;border:1px solid #3ddc9755}
+.ranking{display:grid;gap:8px}.rank-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .7fr;gap:8px;align-items:center;padding:9px 10px;background:#0b111a;border:1px solid var(--line);border-radius:10px;font-size:12px}.rank-row.winner{border-color:#3ddc9788;background:#3ddc970b}.rank-row b{color:var(--text)}.rank-row span{text-align:right;color:var(--muted)}@media(max-width:600px){.rank-row{grid-template-columns:1fr 1fr}.rank-row span{text-align:left}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><img class="brand-logo" src="market-options-scanner-logo.png" alt="Logo Market Options Scanner"><div class="brand-copy"><h1>Market Options Scanner <span class="gold">V4.18</span></h1><p>SPY · SPX · XSP · QQQ · NDX · XND | régimen, volatilidad y spreads</p></div></div>
+    <div class="controls">
+      <div class="control-group">
+        <span class="control-label">Símbolo</span>
+        <div class="segmented">
+          <button class="symbol active" data-symbol="SPY">SPY</button>
+          <button class="symbol" data-symbol="SPX">SPX</button>
+          <button class="symbol" data-symbol="XSP">XSP</button>
+          <button class="symbol" data-symbol="QQQ">QQQ</button>
+          <button class="symbol" data-symbol="NDX">NDX</button>
+          <button class="symbol" data-symbol="XND">XND</button>
+        </div>
+      </div>
+      <div class="control-group expiry-group">
+        <span class="control-label">Expiración</span>
+        <select id="expiry" aria-label="Seleccionar fecha de expiración"></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Vista</span>
+        <select id="expiryFilter" aria-label="Filtrar expiraciones">
+          <option value="all">Todas</option>
+          <option value="daily">Diarias</option>
+          <option value="weekly">Semanal</option>
+          <option value="monthly">Mensual</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Delta crédito</span>
+        <select id="delta"><option value=".15">Δ 0.15</option><option value=".20" selected>Δ 0.20</option><option value=".25">Δ 0.25</option><option value=".30">Δ 0.30</option></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Delta débito</span>
+        <select id="deltaDebit"><option value=".50">Δ 0.50</option><option value=".55">Δ 0.55</option><option value=".60" selected>Δ 0.60</option><option value=".65">Δ 0.65</option><option value=".70">Δ 0.70</option><option value=".80">Δ 0.80</option><option value=".90">Δ 0.90</option></select>
+      </div>
+      <button id="refresh" class="refresh">Actualizar</button>
+    </div>
+  </header>
+  <div id="status" class="status">Preparando conexión…</div>
+
+  <section class="grid" style="margin-top:12px">
+    <article class="card"><h2>Precio</h2><div id="spot" class="metric">—</div><div id="source" class="sub">—</div></article>
+    <article class="card"><h2>GEX neto</h2><div id="netGex" class="metric">—</div><div class="sub">Calls positivos; puts negativos</div></article>
+    <article class="card"><h2>Call Wall</h2><div id="callWall" class="metric positive">—</div><div id="callWallOi" class="sub">—</div></article>
+    <article class="card"><h2>Put Wall</h2><div id="putWall" class="metric negative">—</div><div id="putWallOi" class="sub">—</div></article>
+
+    <article class="card"><h2>Max Pain</h2><div id="maxPain" class="metric purple">—</div><div class="sub">Estimación por open interest</div></article>
+    <article class="card"><h2>Zero Gamma</h2><div id="zeroGamma" class="metric gold">—</div><div class="sub">Cruce acumulado aproximado</div></article>
+    <article class="card"><h2>IV ATM estimada</h2><div id="atmIv" class="metric">—</div><div class="sub">Inferida de precios bid/ask</div></article>
+    <article class="card"><h2>Expected Move</h2><div id="expectedMove" class="metric">—</div><div class="sub">1 desviación estándar</div></article>
+
+    <article class="card wide"><h2>Estrategia sugerida</h2><div id="strategy" class="strategy">—</div><div id="strategyDetail" class="sub">—</div></article>
+    <article class="card wide"><h2>Estado del mercado por gamma</h2><div id="regime" class="strategy">—</div><div id="regimeDetail" class="sub">—</div></article>
+
+    <article class="card full"><h2>Verificación del movimiento</h2><div class="decision">
+      <div><b>Dirección</b><span id="movementDirection">—</span></div><div><b>Confluencia</b><span id="movementScore">—</span></div>
+      <div><b>Put/Call OI</b><span id="movementPcr">—</span></div><div><b>Skew IV</b><span id="movementSkew">—</span></div>
+    </div><ul id="movementFactors" class="reasons"></ul></article>
+
+    <article class="card full"><h2>Comparación de estrategias</h2><div id="strategyRanking" class="ranking"></div><div class="sub">Puntuación relativa: tendencia inferida, IV, griegas, OI, volumen, bid/ask y riesgo. No representa probabilidad estadística.</div></article>
+
+    <article class="card full"><h2>Plan de operación</h2><div id="expiryBadge"></div><div class="decision">
+      <div><b>Strikes</b><span id="planStrikes">—</span></div><div><b>Crédito / débito</b><span id="planPremium">—</span></div>
+      <div><b>Riesgo máximo</b><span id="planRisk">—</span></div><div><b>Confianza</b><span id="planConfidence">—</span></div>
+    </div><div class="confidence"><span id="confidenceBar" style="width:0%"></span></div><div id="strikeAlerts" class="strike-alerts"></div><ul id="planReasons" class="reasons"></ul></article>
+
+    <article class="card full"><h2>Cadena seleccionada</h2><div class="table-wrap"><table>
+      <thead><tr><th>Strike</th><th>Call Δ</th><th>Call IV</th><th>Call Vol.</th><th>Call OI</th><th>Call Γ</th><th>Call Θ</th><th>Put Θ</th><th>Put Γ</th><th>Put OI</th><th>Put Vol.</th><th>Put IV</th><th>Put Δ</th></tr></thead>
+      <tbody id="chainBody"></tbody></table></div>
+    </article>
+    <article class="card full note">Análisis educativo, no garantía ni recomendación financiera. “Confianza” mide confluencia interna de señales y no equivale a probabilidad real de ganancia. GEX es una estimación: OI × gamma × 100 × precio² × 1%. Los precios pueden estar retrasados. Verifica cotización, liquidez, noticias, eventos y la orden completa en tu corredor antes de operar.</article>
+  </section>
+</main>
+<script>
+const CONFIG = {
+  workerBase: "https://young-term-3722.arnaldo-aviles830.workers.dev",
+  refreshMs: 60000,
+  riskFreeRate: 0.043,
+  defaultSymbol: "SPY",
+  defaultDelta: 0.20,
+  maxRisk: 200,
+  minConfidence: 70,
+  maxRows: 28
+};
+
+const INSTRUMENTS={
+  SPY:{width:1,family:"S&P 500 ETF",settlement:"Acciones · americano"},
+  SPX:{width:5,family:"S&P 500 Index",settlement:"Efectivo · europeo"},
+  XSP:{width:1,family:"Mini-SPX Index",settlement:"Efectivo · europeo"},
+  QQQ:{width:1,family:"Nasdaq-100 ETF",settlement:"Acciones · americano"},
+  NDX:{width:5,family:"Nasdaq-100 Index",settlement:"Efectivo · europeo"},
+  XND:{width:1,family:"Micro Nasdaq-100 Index",settlement:"Efectivo · europeo"}
+};
+const CBOE_SYMBOLS=new Set(["SPX","XSP","NDX","XND"]);
+
+
+const SQRT_2PI = Math.sqrt(2 * Math.PI);
+
+function normPdf(x) {
+  return Math.exp(-0.5 * x * x) / SQRT_2PI;
+}
+
+function normCdf(x) {
+  const sign = x < 0 ? -1 : 1;
+  const z = Math.abs(x) / Math.sqrt(2);
+  const t = 1 / (1 + 0.3275911 * z);
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429;
+  const erf = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-z*z);
+  return 0.5 * (1 + sign * erf);
+}
+
+function bsPrice(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) return 0;
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  if (type === "call") return S*normCdf(d1) - K*Math.exp(-r*T)*normCdf(d2);
+  return K*Math.exp(-r*T)*normCdf(-d2) - S*normCdf(-d1);
+}
+
+function impliedVol(type, marketPrice, S, K, T, r) {
+  if (!(marketPrice > 0 && S > 0 && K > 0 && T > 0)) return null;
+  const intrinsic = type === "call" ? Math.max(0, S-K) : Math.max(0, K-S);
+  if (marketPrice < intrinsic) return null;
+  let lo = 0.01, hi = 5;
+  for (let i=0; i<70; i++) {
+    const mid = (lo+hi)/2;
+    const p = bsPrice(type, S, K, T, r, mid);
+    if (p > marketPrice) hi = mid; else lo = mid;
+  }
+  const iv = (lo+hi)/2;
+  return Number.isFinite(iv) ? iv : null;
+}
+
+function greeks(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) {
+    return {delta:null, gamma:null, theta:null};
+  }
+  const rt = Math.sqrt(T);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T)/(sigma*rt);
+  const d2 = d1 - sigma*rt;
+  const gamma = normPdf(d1)/(S*sigma*rt);
+  const delta = type === "call" ? normCdf(d1) : normCdf(d1)-1;
+  const first = -(S*normPdf(d1)*sigma)/(2*rt);
+  const theta = type === "call"
+    ? (first - r*K*Math.exp(-r*T)*normCdf(d2))/365
+    : (first + r*K*Math.exp(-r*T)*normCdf(-d2))/365;
+  return {delta, gamma, theta};
+}
+
+function gexValue(type, oi, gamma, spot) {
+  if (!(oi >= 0 && gamma >= 0 && spot > 0)) return 0;
+  const raw = oi * gamma * 100 * spot * spot * 0.01;
+  return type === "call" ? raw : -raw;
+}
+
+function maxPain(rows) {
+  if (!rows.length) return null;
+  const strikes = [...new Set(rows.map(r => r.strike))].sort((a,b)=>a-b);
+  let best = null;
+  for (const settle of strikes) {
+    let pain = 0;
+    for (const r of rows) {
+      pain += Math.max(0, settle-r.strike) * r.callOi * 100;
+      pain += Math.max(0, r.strike-settle) * r.putOi * 100;
+    }
+    if (!best || pain < best.pain) best = {strike:settle, pain};
+  }
+  return best?.strike ?? null;
+}
+
+
+
+function num(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/[$,%\s,]/g, "");
+  if (!s || s === "--") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseLastTrade(text) {
+  const m = String(text || "").match(/\$([\d,.]+)/);
+  return m ? num(m[1]) : null;
+}
+
+function expiryYear(month, day, now = new Date()) {
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const mm = months[month];
+  if (mm === undefined) return now.getFullYear();
+  let y = now.getFullYear();
+  const d = new Date(y, mm, day, 16, 0, 0);
+  if (d.getTime() < now.getTime() - 86400000*30) y++;
+  return y;
+}
+
+function normalizeDate(label) {
+  if (!label) return null;
+  const m = String(label).match(/([A-Z][a-z]{2})\s+(\d{1,2})(?:,\s*(\d{4}))?/);
+  if (!m) return null;
+  const monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const year = m[3] ? Number(m[3]) : expiryYear(m[1], Number(m[2]));
+  return new Date(year, monthMap[m[1]], Number(m[2]), 16, 0, 0);
+}
+
+async function fetchChain(symbol) {
+  const url = `${CONFIG.workerBase}/options?symbol=${encodeURIComponent(symbol)}`;
+  const response = await fetchWorker(url);
+  if (!response.ok){const problem=await response.json().catch(()=>({}));throw new Error(problem.error||`Worker HTTP ${response.status}`);}
+  const payload = await response.json();
+  const table = payload?.data?.table;
+  const rawRows = table?.rows;
+  if (!Array.isArray(rawRows)) throw new Error("La respuesta no contiene la cadena.");
+  const spot = parseLastTrade(payload?.data?.lastTrade);
+
+  let currentExpiry = null;
+  const rows = [];
+  for (const row of rawRows) {
+    if (row.expirygroup) {
+      currentExpiry = normalizeDate(row.expirygroup);
+      continue;
+    }
+    const strike = num(row.strike);
+    if (!strike) continue;
+    const explicit = normalizeDate(row.expiryDate);
+    const expiry = explicit || currentExpiry;
+    if (!expiry) continue;
+
+    rows.push({
+      expiry,
+      expiryKey: expiry.toISOString().slice(0,10),
+      strike,
+      callBid: num(row.c_Bid),
+      callAsk: num(row.c_Ask),
+      callLast: num(row.c_Last),
+      callVolume: num(row.c_Volume) || 0,
+      callOi: num(row.c_Openinterest) || 0,
+      callDeltaNative: num(row.c_Delta),
+      callIvNative: num(row.c_IV),
+      callGammaNative: num(row.c_Gamma),
+      callThetaNative: num(row.c_Theta),
+      putBid: num(row.p_Bid),
+      putAsk: num(row.p_Ask),
+      putLast: num(row.p_Last),
+      putVolume: num(row.p_Volume) || 0,
+      putOi: num(row.p_Openinterest) || 0,
+      putDeltaNative: num(row.p_Delta),
+      putIvNative: num(row.p_IV),
+      putGammaNative: num(row.p_Gamma),
+      putThetaNative: num(row.p_Theta)
+    });
+  }
+  const source=payload?.meta?.source ? `${payload.meta.source} vía Cloudflare` : "Nasdaq vía Cloudflare";
+  return {symbol, spot, rows, fetchedAt:new Date(), source, chainTimestamp:payload?.meta?.timestamp||null};
+}
+
+async function fetchWorker(url){
+  try{return await fetch(url,{cache:"no-store"});}
+  catch(firstError){
+    // A brief connection drop should not blank SPY/QQQ on the first attempt.
+    await new Promise(resolve=>setTimeout(resolve,800));
+    return fetch(url,{cache:"no-store"});
+  }
+}
+
+async function fetchIndexQuote(symbol){
+  const response=await fetchWorker(`${CONFIG.workerBase}/quote?symbol=${encodeURIComponent(symbol)}`);
+  const payload=await response.json();
+  if(!response.ok||!(Number(payload.price)>0)||!Number.isFinite(Date.parse(payload.timestamp))){
+    throw new Error(payload.error||`Cotización ${symbol} no disponible`);
+  }
+  return payload;
+}
+
+function indexMarketOpen(){
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const get=key=>parts.find(x=>x.type===key)?.value;
+  const minute=Number(get("hour"))*60+Number(get("minute"));
+  return !["Sat","Sun"].includes(get("weekday"))&&minute>=600&&minute<=960;
+}
+
+function chainTooOld(timestamp){
+  if(!timestamp)return true;
+  // Cboe's timestamp has no timezone. Test UTC and Eastern interpretations.
+  const iso=String(timestamp).replace(" ","T");
+  const utc=Date.parse(iso+"Z"), eastern=Date.parse(iso+"-04:00"), winter=Date.parse(iso+"-05:00");
+  const mostRecent=Math.max(utc||0,eastern||0,winter||0);
+  return !mostRecent||Date.now()-mostRecent>90*60000;
+}
+
+function clearAnalysis(){
+  state.raw=null;state.rows=[];
+  $("expiry").replaceChildren();
+  for(const id of ["netGex","callWall","callWallOi","putWall","putWallOi","maxPain","zeroGamma","atmIv","expectedMove","strategy","strategyDetail","regime","regimeDetail","movementDirection","movementScore","movementPcr","movementSkew","planStrikes","planPremium","planRisk","planConfidence"]){$(id).textContent="—";}
+  for(const id of ["movementFactors","strategyRanking","expiryBadge","strikeAlerts","planReasons","chainBody"]){$(id).replaceChildren();}
+  $("confidenceBar").style.width="0%";
+}
+
+function midpoint(bid, ask, last) {
+  if (bid !== null && ask !== null && ask >= bid && ask > 0) return (bid+ask)/2;
+  return last && last > 0 ? last : null;
+}
+
+function enrichRows(rows, spot) {
+  const now = Date.now();
+  return rows.map(row => {
+    const T = Math.max((row.expiry.getTime()-now)/(365*24*3600*1000), 0.5/365);
+    const callMid = midpoint(row.callBid,row.callAsk,row.callLast);
+    const putMid = midpoint(row.putBid,row.putAsk,row.putLast);
+    const normalizeIv=v=>Number.isFinite(v)&&v>0?(v>2?v/100:v):null;
+    const validCallDelta=Number.isFinite(row.callDeltaNative)&&row.callDeltaNative>.001&&row.callDeltaNative<.999;
+    const validPutDelta=Number.isFinite(row.putDeltaNative)&&Math.abs(row.putDeltaNative)>.001&&Math.abs(row.putDeltaNative)<.999;
+    const nativeCallIv=normalizeIv(row.callIvNative), nativePutIv=normalizeIv(row.putIvNative);
+    const estimatedCallIv = impliedVol("call",callMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const estimatedPutIv = impliedVol("put",putMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const callIv = nativeCallIv ?? estimatedCallIv;
+    const putIv = nativePutIv ?? estimatedPutIv;
+    const cg = callIv ? greeks("call",spot,row.strike,T,CONFIG.riskFreeRate,callIv) : {};
+    const pg = putIv ? greeks("put",spot,row.strike,T,CONFIG.riskFreeRate,putIv) : {};
+    const callDelta=validCallDelta?row.callDeltaNative:cg.delta;
+    const putDelta=validPutDelta?row.putDeltaNative:pg.delta;
+    const callGamma=Number.isFinite(row.callGammaNative)&&row.callGammaNative>0?row.callGammaNative:cg.gamma;
+    const putGamma=Number.isFinite(row.putGammaNative)&&row.putGammaNative>0?row.putGammaNative:pg.gamma;
+    const callTheta=Number.isFinite(row.callThetaNative)&&row.callThetaNative!==0?row.callThetaNative:cg.theta;
+    const putTheta=Number.isFinite(row.putThetaNative)&&row.putThetaNative!==0?row.putThetaNative:pg.theta;
+    const callGex = gexValue("call",row.callOi,callGamma,spot);
+    const putGex = gexValue("put",row.putOi,putGamma,spot);
+    const deltaSource=validCallDelta||validPutDelta?"cadena":"estimado";
+    return {...row, T, callMid, putMid, callIv, putIv, callDelta,
+      putDelta, callGamma, putGamma,
+      callTheta, putTheta, deltaSource, callGex, putGex,
+      netGex:callGex+putGex};
+  });
+}
+
+
+
+const state = {symbol:CONFIG.defaultSymbol, raw:null, rows:[], timer:null, priceHistory:{}};
+function recordPrice(symbol, price){
+  if(!(price>0))return;
+  const now=Date.now(), history=state.priceHistory[symbol]||[];
+  history.push({price,time:now});
+  state.priceHistory[symbol]=history.filter(point=>now-point.time<=20*60000);
+}
+function priceMomentum(symbol){
+  const history=state.priceHistory[symbol]||[], last=history.at(-1);
+  if(!last)return {direction:"SIN CONFIRMAR",detail:"Esperando dos precios recientes."};
+  const first=history.find(point=>last.time-point.time>=2*60000);
+  if(!first)return {direction:"SIN CONFIRMAR",detail:"Esperando al menos dos minutos de cambios en el precio."};
+  const change=(last.price-first.price)/first.price;
+  return {direction:change>=.0005?"ALCISTA":change<=-.0005?"BAJISTA":"NEUTRAL",
+    detail:`Precio observado en ${Math.round((last.time-first.time)/60000)} min: ${(change*100).toFixed(2)}%.`};
+}
+const $ = id => document.getElementById(id);
+const money = n => Number.isFinite(n) ? `$${n.toFixed(2)}` : "—";
+const pct = n => Number.isFinite(n) ? `${(n*100).toFixed(1)}%` : "—";
+const compact = n => {
+  if (!Number.isFinite(n)) return "—";
+  const a=Math.abs(n), s=n<0?"-":"";
+  if(a>=1e9)return s+(a/1e9).toFixed(2)+"B";
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3)return s+(a/1e3).toFixed(1)+"K";
+  return Math.round(n).toString();
+};
+
+function setStatus(text, kind=""){ const e=$("status"); e.textContent=text; e.className=`status ${kind}`; }
+
+function expiries(rows){
+  return [...new Map(rows.map(r=>[r.expiryKey,r.expiry])).entries()].sort((a,b)=>a[1]-b[1]);
+}
+
+function isThirdFriday(date){
+  return date.getDay()===5 && date.getDate()>=15 && date.getDate()<=21;
+}
+
+function expiryType(date){
+  if(isThirdFriday(date)) return "monthly";
+  if(date.getDay()===5) return "weekly";
+  return "daily";
+}
+
+function expiryTypeLabel(type){ return type==="monthly"?"MENSUAL":type==="weekly"?"SEMANAL":"DIARIO"; }
+function expiryFilterLabel(type){ return type==="monthly"?"mensuales":type==="weekly"?"semanales":type==="daily"?"diarias":"seleccionadas"; }
+
+function calendarDte(date,now=new Date()){
+  const expiryDay=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  return Math.max(0,Math.round((expiryDay-today)/86400000));
+}
+
+function filteredExpiries(list, mode){
+  if(!list.length) return list;
+  if(["daily","weekly","monthly"].includes(mode)) return list.filter(([,date])=>expiryType(date)===mode);
+  return list;
+}
+
+function populateExpiry(preserveKey=""){
+  const all = expiries(state.rows);
+  const mode = $("expiryFilter")?.value || "all";
+  const shown = filteredExpiries(all,mode);
+  if(!shown.length){
+    $("expiry").innerHTML=`<option value="">No hay expiraciones ${expiryFilterLabel(mode)}</option>`;
+    return false;
+  }
+  $("expiry").innerHTML = shown.map(([key,date])=>{
+    const dte = calendarDte(date);
+    const label = `[${expiryTypeLabel(expiryType(date))}] ${date.toLocaleDateString("es-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})} · ${dte} DTE`;
+    return `<option value="${key}">${label}</option>`;
+  }).join("");
+  if(preserveKey && shown.some(([k])=>k===preserveKey)) $("expiry").value=preserveKey;
+  return true;
+}
+
+function selectedRows(){
+  const key=$("expiry").value;
+  return state.rows.filter(r=>r.expiryKey===key);
+}
+
+function nearestByDelta(rows, side, target){
+  const candidates = rows.filter(r => side==="put" ? Number.isFinite(r.putDelta) : Number.isFinite(r.callDelta));
+  return candidates.sort((a,b)=>{
+    const da=Math.abs(Math.abs(side==="put"?a.putDelta:a.callDelta)-target);
+    const db=Math.abs(Math.abs(side==="put"?b.putDelta:b.callDelta)-target);
+    return da-db;
+  })[0] || null;
+}
+
+function nearestOtmByDelta(rows,side,target,spot){
+  const otm=rows.filter(r=>
+    side==="put"
+      ? r.strike<spot&&Number.isFinite(r.putDelta)
+      : r.strike>spot&&Number.isFinite(r.callDelta)
+  );
+  return nearestByDelta(otm.length?otm:rows,side,target);
+}
+
+function nearestDebitLong(rows,side,spot,target){
+  const preferred=rows.filter(r=>
+    side==="put"
+      ? r.strike>=spot&&Number.isFinite(r.putDelta)
+      : r.strike<=spot&&Number.isFinite(r.callDelta)
+  );
+  return nearestByDelta(preferred.length?preferred:rows,side,target);
+}
+
+function zeroGamma(rows){
+  const sorted=[...rows].sort((a,b)=>a.strike-b.strike);
+  let cum=0, prev=null;
+  for(const r of sorted){
+    const next=cum+r.netGex;
+    if(prev && cum!==0 && next!==0 && Math.sign(cum)!==Math.sign(next)){
+      const ratio=Math.abs(cum)/(Math.abs(cum)+Math.abs(next));
+      return prev.strike+(r.strike-prev.strike)*ratio;
+    }
+    cum=next; prev=r;
+  }
+  // No sign change means there is no supported zero-gamma crossing.
+  return null;
+}
+
+function rowAtStrike(rows,strike){ return rows.find(r=>Math.abs(r.strike-strike)<0.001)||null; }
+function liquid(r,side){
+  if(!r) return false;
+  const bid=side==="call"?r.callBid:r.putBid, ask=side==="call"?r.callAsk:r.putAsk;
+  const oi=side==="call"?r.callOi:r.putOi;
+  const mid=(bid+ask)/2;
+  return bid>0 && ask>=bid && oi>=10 && (ask-bid)<=Math.max(.10,mid*.30);
+}
+function premiumForLeg(r,side){ return side==="call"?r?.callMid:r?.putMid; }
+function spreadQuote(rows,kind,shortRow,longRow){
+  if(!shortRow||!longRow) return null;
+  const side=kind.includes("call")?"call":"put";
+  const shortBid=side==="call"?shortRow.callBid:shortRow.putBid;
+  const longAsk=side==="call"?longRow.callAsk:longRow.putAsk;
+  if(!(shortBid>0&&longAsk>0))return null;
+  const credit=kind.includes("credit");
+  const width=Math.abs(shortRow.strike-longRow.strike);
+  const premium=credit?shortBid-longAsk:longAsk-shortBid;
+  if(!(width>0&&premium>0&&premium<width))return null;
+  const risk=credit?(width-premium)*100:premium*100;
+  return {premium,risk,width,liquid:liquid(shortRow,side)&&liquid(longRow,side)};
+}
+function movementVerification(rows,spot,net,zg,mp,em){
+  const scale=Math.max(em||spot*.01,1);
+  const callOi=rows.reduce((s,r)=>s+r.callOi,0), putOi=rows.reduce((s,r)=>s+r.putOi,0);
+  const pcr=putOi/Math.max(1,callOi);
+  const call25=nearestByDelta(rows,"call",.25), put25=nearestByDelta(rows,"put",.25);
+  const skew=(put25?.putIv||0)-(call25?.callIv||0);
+  const callWall=[...rows].sort((a,b)=>b.callOi-a.callOi)[0];
+  const putWall=[...rows].sort((a,b)=>b.putOi-a.putOi)[0];
+  const parts=[]; let score=0;
+  const add=(value,label)=>{score+=value;parts.push({value,label});};
+  if(Number.isFinite(zg))parts.push({value:0,label:`Zero Gamma estimado en ${money(zg)}; no confirma la dirección del precio.`});
+  if(Number.isFinite(mp)){
+    const m=(mp-spot)/scale;
+    if(Math.abs(m)>.25)add(Math.sign(m)*Math.min(12,4+Math.abs(m)*4),`Max Pain favorece reversión hacia ${money(mp)}.`);
+  }
+  if(pcr>=1.15)add(Math.min(12,(pcr-1)*16),"Put/Call OI elevado aporta soporte relativo.");
+  else if(pcr<=.85)add(-Math.min(12,(1-pcr)*16),"Put/Call OI bajo reduce soporte relativo.");
+  if(skew>.025)add(-Math.min(10,skew*160),"Skew de puts elevado confirma demanda de protección.");
+  else if(skew<-.025)add(Math.min(10,Math.abs(skew)*160),"Skew de calls elevado confirma presión alcista.");
+  if(callWall&&putWall){
+    const resistance=(callWall.strike-spot)/scale, support=(spot-putWall.strike)/scale;
+    if(resistance>0&&support>0){
+      if(resistance<support*.65)add(-8,`Call Wall cercano en ${money(callWall.strike)} limita avance.`);
+      else if(support<resistance*.65)add(8,`Put Wall cercano en ${money(putWall.strike)} aporta soporte.`);
+    }
+  }
+  const momentum=priceMomentum(state.symbol);
+  const optionsDirection=score>=15?"ALCISTA":score<=-15?"BAJISTA":"NEUTRAL";
+  const baseDirection=optionsDirection;
+  parts.push({value:0,label:`${momentum.detail} Sesgo de opciones: ${optionsDirection.toLowerCase()}. El precio observado ${momentum.direction===optionsDirection?"coincide":"aún no confirma ese sesgo"}.`});
+  const aligned=parts.filter(p=>baseDirection==="ALCISTA"?p.value>0:baseDirection==="BAJISTA"?p.value<0:false).length;
+  const opposed=parts.filter(p=>baseDirection==="ALCISTA"?p.value<0:baseDirection==="BAJISTA"?p.value>0:false).length;
+  const gammaLabel=net>=0?"Gamma positiva: favorece compresión y reversión.":"Gamma negativa: favorece expansión y continuación.";
+  parts.unshift({value:0,label:gammaLabel});
+  const strength=Math.min(100,Math.round(Math.abs(score)));
+  const boundedScore=baseDirection==="NEUTRAL"?0:Math.max(-100,Math.min(100,score));
+  return {direction:baseDirection,score:boundedScore,strength:Math.abs(boundedScore),pcr,skew,aligned,opposed,totalOi:callOi+putOi,factors:parts.map(p=>p.label),confirmed:momentum.direction===optionsDirection&&optionsDirection!=="NEUTRAL",priceDirection:momentum.direction};
+}
+function legDelta(row,side){
+  const value=side==="call"?row?.callDelta:row?.putDelta;
+  return Number.isFinite(value)?value:null;
+}
+function deltaText(row,side){
+  const value=legDelta(row,side);
+  return value===null?"Δ —":`Δ ${value.toFixed(2)}`;
+}
+function legMarketQuality(legs){
+  const valid=legs.filter(x=>x?.row);
+  if(!valid.length||valid.length!==legs.length)return {score:-35,minOi:0,totalVolume:0,spreadPct:9,liquid:false};
+  let minOi=Infinity,totalVolume=0,spreadSum=0,quoted=0,liquidCount=0;
+  for(const leg of valid){
+    const r=leg.row, side=leg.side;
+    const oi=side==="call"?r.callOi:r.putOi;
+    const volume=side==="call"?r.callVolume:r.putVolume;
+    const bid=side==="call"?r.callBid:r.putBid,ask=side==="call"?r.callAsk:r.putAsk;
+    minOi=Math.min(minOi,oi||0);totalVolume+=volume||0;
+    if(bid>0&&ask>=bid){spreadSum+=(ask-bid)/Math.max((ask+bid)/2,.01);quoted++;}
+    if(liquid(r,side))liquidCount++;
+  }
+  const spreadPct=quoted?spreadSum/quoted:9;
+  let score=0;
+  score+=minOi>=500?12:minOi>=100?9:minOi>=25?5:minOi>=10?2:-10;
+  score+=totalVolume>=500?9:totalVolume>=100?7:totalVolume>=20?4:totalVolume>0?1:-5;
+  score+=spreadPct<=.08?10:spreadPct<=.15?7:spreadPct<=.25?3:-10;
+  score+=liquidCount===valid.length?6:liquidCount>=Math.ceil(valid.length/2)?1:-6;
+  return {score,minOi,totalVolume,spreadPct,liquid:liquidCount===valid.length};
+}
+function thetaExposure(legs){
+  return legs.reduce((sum,leg)=>{
+    const theta=leg.side==="call"?leg.row?.callTheta:leg.row?.putTheta;
+    if(!Number.isFinite(theta))return sum;
+    return sum+(leg.role==="short"?-theta:theta);
+  },0);
+}
+function buildDecision(rows,spot,net,zg,mp,iv,em,creditTarget,debitTarget){
+  const cfg=INSTRUMENTS[state.symbol]||INSTRUMENTS.SPY;
+  const put=nearestOtmByDelta(rows,"put",creditTarget,spot), call=nearestOtmByDelta(rows,"call",creditTarget,spot);
+  const putLong=put&&rowAtStrike(rows,put.strike-cfg.width);
+  const callLong=call&&rowAtStrike(rows,call.strike+cfg.width);
+  const pcs=spreadQuote(rows,"put-credit",put,putLong);
+  const ccs=spreadQuote(rows,"call-credit",call,callLong);
+  const callDebitLong=nearestDebitLong(rows,"call",spot,debitTarget);
+  const callDebitShort=callDebitLong&&rowAtStrike(rows,callDebitLong.strike+cfg.width);
+  const putDebitLong=nearestDebitLong(rows,"put",spot,debitTarget);
+  const putDebitShort=putDebitLong&&rowAtStrike(rows,putDebitLong.strike-cfg.width);
+  const cds=spreadQuote(rows,"call-debit",callDebitShort,callDebitLong);
+  const pds=spreadQuote(rows,"put-debit",putDebitShort,putDebitLong);
+  const movement=movementVerification(rows,spot,net,zg,mp,em);
+  let reasons=[...movement.factors];
+  const nativeDeltaCount=rows.filter(r=>r.deltaSource==="cadena").length;
+  reasons.push(nativeDeltaCount
+    ? `Deltas de la cadena: crédito vende OTM cerca de ${creditTarget.toFixed(2)}; débito compra ATM/ITM cerca de ${debitTarget.toFixed(2)}.`
+    : `Delta estimado de respaldo: crédito vende OTM cerca de ${creditTarget.toFixed(2)}; débito compra ATM/ITM cerca de ${debitTarget.toFixed(2)}.`);
+  let name="ESTRATEGIA EN EVALUACIÓN",strikes="Sin strikes válidos",quote=null,confidence=45,selectedLegs=[];
+  const alerts=[];
+  const ivPct=Number.isFinite(iv)?iv*100:null;
+  const lowIv=ivPct!==null&&ivPct<12;
+  const highIv=ivPct!==null&&ivPct>=20;
+  const condorLegs=[{role:"short",side:"put",row:put},{role:"long",side:"put",row:putLong},{role:"short",side:"call",row:call},{role:"long",side:"call",row:callLong}];
+  const condorCredit=pcs&&ccs?pcs.premium+ccs.premium:null;
+  const condorWidth=pcs&&ccs?Math.max(pcs.width,ccs.width):null;
+  const condorQuote=Number.isFinite(condorCredit)?{premium:condorCredit,risk:Math.max(0,(condorWidth-condorCredit)*100),width:condorWidth,liquid:pcs.liquid&&ccs.liquid}:null;
+  const candidates=[
+    {name:"PUT CREDIT SPREAD",bias:"bull",kind:"credit",quote:pcs,legs:[{role:"short",side:"put",row:put},{role:"long",side:"put",row:putLong}],strikes:put&&putLong?`${put.strike}/${putLong.strike} P (${deltaText(put,"put")} corta)`:"Sin strikes válidos"},
+    {name:"CALL DEBIT SPREAD",bias:"bull",kind:"debit",quote:cds,legs:[{role:"long",side:"call",row:callDebitLong},{role:"short",side:"call",row:callDebitShort}],strikes:callDebitLong&&callDebitShort?`${callDebitLong.strike}/${callDebitShort.strike} C (${deltaText(callDebitLong,"call")} larga)`:"Sin strikes válidos"},
+    {name:"CALL CREDIT SPREAD",bias:"bear",kind:"credit",quote:ccs,legs:[{role:"short",side:"call",row:call},{role:"long",side:"call",row:callLong}],strikes:call&&callLong?`${call.strike}/${callLong.strike} C (${deltaText(call,"call")} corta)`:"Sin strikes válidos"},
+    {name:"PUT DEBIT SPREAD",bias:"bear",kind:"debit",quote:pds,legs:[{role:"long",side:"put",row:putDebitLong},{role:"short",side:"put",row:putDebitShort}],strikes:putDebitLong&&putDebitShort?`${putDebitLong.strike}/${putDebitShort.strike} P (${deltaText(putDebitLong,"put")} larga)`:"Sin strikes válidos"},
+    {name:"IRON CONDOR",bias:"neutral",kind:"condor",quote:condorQuote,legs:condorLegs,strikes:put&&putLong&&call&&callLong?`${put.strike}/${putLong.strike} P (${deltaText(put,"put")} corta) · ${call.strike}/${callLong.strike} C (${deltaText(call,"call")} corta)`:"Sin strikes válidos"}
+  ];
+  const candidateDte=calendarDte(rows[0].expiry);
+  const riskLimit=candidateDte===0?100:CONFIG.maxRisk;
+  for(const c of candidates){
+    c.market=legMarketQuality(c.legs);c.theta=thetaExposure(c.legs);
+    let score=45+c.market.score;
+    if(!c.quote||c.strikes==="Sin strikes válidos")score=-99;
+    if(c.bias==="bull")score+=movement.score*.32;
+    if(c.bias==="bear")score-=movement.score*.32;
+    if(c.bias==="neutral")score+=18-movement.strength*.55;
+    if(movement.priceDirection!=="SIN CONFIRMAR"&&movement.priceDirection!=="NEUTRAL"&&c.bias!=="neutral"){
+      score+=c.bias===(movement.priceDirection==="ALCISTA"?"bull":"bear")?12:-12;
+    }
+    if(lowIv)score+=c.kind==="debit"?18:c.kind==="credit"?-13:-18;
+    else if(highIv)score+=c.kind==="credit"?16:c.kind==="condor"?13:-12;
+    else score+=c.kind==="credit"?5:c.kind==="condor"&&net>=0?9:3;
+    if(net<0&&c.bias!=="neutral")score+=6;
+    if(net>=0&&c.bias==="neutral")score+=10;
+    if(c.kind==="credit"||c.kind==="condor")score+=c.theta>0?6:-3;
+    if(c.kind==="debit")score+=c.theta<0?2:-2;
+    if(c.quote?.risk>riskLimit)score-=18;
+    if(c.kind!=="debit"&&c.quote){const credit=c.quote.premium*100;if(credit>=30&&credit<=90)score+=5;else score-=5;}
+    c.score=Math.max(0,Math.min(95,score));
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  const winner=candidates[0];
+  if(winner&&winner.score>0&&winner.quote){
+    name=winner.name;strikes=winner.strikes;quote=winner.quote;selectedLegs=winner.legs;
+    confidence=winner.score;
+    reasons.push(`Se compararon las cinco estrategias; ${name} obtuvo la mayor puntuación (${Math.round(winner.score)}/95).`);
+    reasons.push(`Liquidez de las patas: OI mínimo ${compact(winner.market.minOi)}, volumen total ${compact(winner.market.totalVolume)}, spread bid/ask promedio ${winner.market.spreadPct<9?(winner.market.spreadPct*100).toFixed(1)+"%":"no disponible"}.`);
+    reasons.push(`Theta neta estimada de la estructura: ${winner.theta>=0?"+":""}${winner.theta.toFixed(3)} por día.`);
+  }else{
+    name="DATOS INSUFICIENTES";strikes="Sin estructura cotizable";quote=null;selectedLegs=[];confidence=10;
+    reasons.push("Ninguna de las cinco estrategias tiene patas y primas válidas para esta expiración.");
+  }
+  if(!movement.confirmed)reasons.push(`Sugerencia anticipatoria: sesgo de opciones ${movement.direction.toLowerCase()}; precio observado ${movement.priceDirection.toLowerCase()}. No se ha confirmado una entrada.`);
+
+  const creditStructure=name.includes("CREDIT")||name==="IRON CONDOR";
+  const shortPut=creditStructure?selectedLegs.find(x=>x.role==="short"&&x.side==="put")?.row:null;
+  const shortCall=creditStructure?selectedLegs.find(x=>x.role==="short"&&x.side==="call")?.row:null;
+  const debitLong=selectedLegs.find(x=>x.role==="long"&&name.includes("DEBIT"));
+  const checkShort=(row,side)=>{
+    if(!row)return;
+    const distance=side==="put"?spot-row.strike:row.strike-spot;
+    if(distance<=0) alerts.push({level:"red",text:`${side.toUpperCase()} corta ${row.strike}: está en el lado incorrecto del precio ${money(spot)}.`});
+    else if(Number.isFinite(em)&&distance<em*.5) alerts.push({level:"red",text:`${side.toUpperCase()} corta ${row.strike}: demasiado cerca del precio (${money(distance)}; menos de 0.5× expected move).`});
+    else if(Number.isFinite(em)&&distance<em) alerts.push({level:"yellow",text:`${side.toUpperCase()} corta ${row.strike}: permanece dentro del expected move de ±${money(em)}.`});
+  };
+  checkShort(shortPut,"put");checkShort(shortCall,"call");
+  if(name==="IRON CONDOR"&&shortPut&&shortCall){
+    const putDistance=spot-shortPut.strike,callDistance=shortCall.strike-spot;
+    const ratio=putDistance/Math.max(callDistance,.01);
+    if(!(shortPut.strike<spot&&spot<shortCall.strike)) alerts.push({level:"red",text:"Iron Condor inválido: el precio no está entre las dos patas cortas."});
+    else if(ratio<.60||ratio>1.67) alerts.push({level:"yellow",text:`Iron Condor asimétrico: distancias ${money(putDistance)} abajo y ${money(callDistance)} arriba.`});
+  }
+  if(debitLong?.row){
+    const actual=Math.abs(legDelta(debitLong.row,debitLong.side)??0);
+    const debitShort=selectedLegs.find(x=>x.role==="short"&&x.side===debitLong.side)?.row;
+    const validGeometry=debitLong.side==="call"
+      ? debitLong.row.strike<(debitShort?.strike??Infinity)
+      : debitLong.row.strike>(debitShort?.strike??-Infinity);
+    if(!debitShort||!validGeometry) alerts.push({level:"red",text:`Estructura ${debitLong.side.toUpperCase()} debit inválida: revisa el orden de la pata larga y la pata corta.`});
+    if(actual>=.85) alerts.push({level:"yellow",text:`Pata larga débito ${debitLong.row.strike}: delta ${actual.toFixed(2)} profundamente ITM; revisa costo y riesgo.`});
+    else if(actual<.45) alerts.push({level:"red",text:`Pata larga débito ${debitLong.row.strike}: delta ${actual.toFixed(2)} demasiado OTM para la configuración elegida.`});
+  }
+  if(!quote) alerts.push({level:"red",text:"No hay una estructura completa con cotizaciones válidas; no uses strikes parciales."});
+  else if(!alerts.length) alerts.push({level:"green",text:"Ubicación de strikes coherente con el precio y el expected move."});
+  const redAlerts=alerts.filter(a=>a.level==="red").length;
+  const yellowAlerts=alerts.filter(a=>a.level==="yellow").length;
+  confidence-=redAlerts*10+yellowAlerts*4;
+  if(movement.direction==="NEUTRAL" && name!=="IRON CONDOR"){
+    confidence-=10;
+    reasons.push(`Señal direccional débil: ${name} ganó por volatilidad, griegas y liquidez, pero conserva confianza reducida.`);
+  }
+  if(lowIv) reasons.push(`IV ATM baja (${ivPct.toFixed(1)}%): se favorecen spreads de débito y se evita vender prima barata.`);
+  else if(highIv) reasons.push(`IV ATM alta (${ivPct.toFixed(1)}%): se favorecen spreads de crédito cuando la dirección está confirmada.`);
+  else if(ivPct!==null) reasons.push(`IV ATM intermedia (${ivPct.toFixed(1)}%): débito o crédito se decide con gamma, dirección y calidad de la prima.`);
+  if(!quote||!quote.liquid){confidence-=20;reasons.push("Liquidez insuficiente o bid/ask demasiado amplio.");}
+  const isCredit=name.includes("CREDIT")||name==="IRON CONDOR";
+  if(quote&&isCredit){
+    const credit=quote.premium*100;
+    if(credit<30||credit>90){confidence-=8;reasons.push(`Crédito ${money(credit)} fuera del rango preferido de $30–$90.`);}
+  }
+  if(rows.length<20||movement.totalOi<1000){confidence=Math.min(confidence,60);reasons.push("Calidad de datos insuficiente: pocos strikes u open interest.");}
+  const dte=calendarDte(rows[0].expiry);
+  const isZeroDte=dte===0;
+  const selectedExpiryType=expiryType(rows[0].expiry);
+  const finalRiskLimit=isZeroDte?100:CONFIG.maxRisk;
+  const confidenceLimit=isZeroDte?70:selectedExpiryType==="monthly"?75:CONFIG.minConfidence;
+  const invalidDte=dte>7;
+  const exceedsRisk=quote&&quote.risk>finalRiskLimit;
+  if(exceedsRisk){confidence-=25;reasons.push(`Riesgo estimado supera el máximo preferido de $${finalRiskLimit}${isZeroDte?" para 0DTE":""}.`);}
+  if(isZeroDte){
+    confidence-=5;
+    reasons.push("0DTE habilitado: confianza mínima 70% y riesgo máximo $100.");
+    if(movement.direction==="NEUTRAL"){confidence=Math.min(confidence,70);reasons.push("0DTE neutral o contradictorio: confianza reducida; requiere confirmación adicional.");}
+  }
+  if(!movement.confirmed){confidence=Math.min(confidence,45);reasons.push("Dirección sin confirmar: la puntuación no mide probabilidad de éxito ni predice el movimiento futuro.");}
+  if(movement.priceDirection!=="SIN CONFIRMAR"&&movement.priceDirection!=="NEUTRAL"&&winner?.bias!=="neutral"&&winner?.bias!==(movement.priceDirection==="ALCISTA"?"bull":"bear")){
+    confidence=Math.min(confidence,45);
+    reasons.push("La estrategia apuesta por un giro contrario al movimiento observado: sigue siendo una hipótesis, no una entrada confirmada.");
+  }
+  if(invalidDte){reasons.push(`Vencimiento de ${dte} DTE fuera del rango máximo permitido de 0–7 días.`);}
+  confidence=Math.max(10,Math.min(90,confidence));
+  const belowMinimum=confidence<confidenceLimit;
+  if(belowMinimum){reasons.push(`Confianza ${Math.round(confidence)}%: inferior al nivel preferido de ${confidenceLimit}%.`);}
+  return {name,strikes,quote,confidence,reasons,alerts,selectedLegs,pcr:movement.pcr,cfg,dte,type:selectedExpiryType,movement,candidates};
+}
+
+function render(){
+  const rows=selectedRows();
+  const spot=state.raw?.spot;
+  if(!rows.length || !spot) return;
+
+  const net=rows.reduce((s,r)=>s+r.netGex,0);
+  const callWall=[...rows].sort((a,b)=>b.callOi-a.callOi)[0];
+  const putWall=[...rows].sort((a,b)=>b.putOi-a.putOi)[0];
+  const mp=maxPain(rows);
+  const zg=zeroGamma(rows);
+  const atm=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))[0];
+  const atmIv=[atm?.callIv,atm?.putIv].filter(Number.isFinite);
+  const iv=atmIv.length?atmIv.reduce((a,b)=>a+b,0)/atmIv.length:null;
+  const days=Math.max((rows[0].expiry-Date.now())/86400000,0.5);
+  const em=iv?spot*iv*Math.sqrt(days/365):null;
+
+  $("spot").textContent=money(spot);
+  $("source").textContent=`${state.raw.source} · ${state.raw.fetchedAt.toLocaleTimeString()}`;
+  $("netGex").textContent=compact(net); $("netGex").className=`metric ${net>=0?"positive":"negative"}`;
+  $("callWall").textContent=money(callWall?.strike); $("callWallOi").textContent=`OI ${compact(callWall?.callOi)}`;
+  $("putWall").textContent=money(putWall?.strike); $("putWallOi").textContent=`OI ${compact(putWall?.putOi)}`;
+  $("maxPain").textContent=money(mp); $("zeroGamma").textContent=money(zg);
+  $("atmIv").textContent=pct(iv); $("expectedMove").textContent=em?`±${money(em)}`:"—";
+
+  const creditTarget=Number($("delta").value);
+  const debitTarget=Number($("deltaDebit").value);
+  const decision=buildDecision(rows,spot,net,zg,mp,iv,em,creditTarget,debitTarget);
+  $("strategy").textContent=`${decision.name}${decision.movement.confirmed?"":" · SIN CONFIRMACIÓN DE PRECIO"}`;
+  $("strategy").className=`strategy ${decision.confidence>=70?"positive":"gold"}`;
+  const activeTarget=decision.name.includes("DEBIT")?debitTarget:creditTarget;
+  $("strategyDetail").textContent=`${decision.cfg.family} · ${decision.cfg.settlement} · objetivo |Δ| ${activeTarget.toFixed(2)} · primas estimadas con bid/ask`;
+  $("regime").textContent=net>=0?"Gamma positiva: posible compresión":"Gamma negativa: posible expansión";
+  $("regimeDetail").textContent=net>=0
+    ?"Los movimientos pueden tender a revertir hacia strikes con mayor OI."
+    :"Puede aumentar la velocidad del movimiento; walls y Zero Gamma ganan importancia.";
+
+  const movement=decision.movement;
+  $("movementDirection").textContent=`Opciones: ${movement.direction} · Precio: ${movement.priceDirection}`;
+  $("movementDirection").className=movement.direction==="ALCISTA"?"positive":movement.direction==="BAJISTA"?"negative":"gold";
+  $("movementScore").textContent=`${movement.score>=0?"+":""}${Math.round(movement.score)} / 100`;
+  $("movementPcr").textContent=movement.pcr.toFixed(2);
+  $("movementSkew").textContent=`${movement.skew>=0?"+":""}${(movement.skew*100).toFixed(1)} pts`;
+  $("movementFactors").innerHTML=movement.factors.map(x=>`<li>${x}</li>`).join("");
+  $("strategyRanking").innerHTML=decision.candidates.map((c,i)=>`<div class="rank-row ${i===0?"winner":""}"><b>${i+1}. ${c.name}</b><span>Puntos ${Math.round(c.score)}/95</span><span>OI mín. ${compact(c.market.minOi)}</span><span>Vol. ${compact(c.market.totalVolume)}</span></div>`).join("");
+
+  $("expiryBadge").innerHTML=`<span class="badge ${decision.type}">${expiryTypeLabel(decision.type)}</span><span class="badge">${decision.dte} DTE</span>`;
+  $("planStrikes").textContent=decision.strikes;
+  const premiumType=decision.name.includes("DEBIT")?"Débito":decision.name.includes("CREDIT")||decision.name==="IRON CONDOR"?"Crédito":"Estimado";
+  $("planPremium").textContent=decision.quote?`${premiumType} ${money(decision.quote.premium*100)}`:"—";
+  $("planRisk").textContent=decision.quote?money(Math.max(0,decision.quote.risk)):"—";
+  $("planConfidence").textContent=`${Math.round(decision.confidence)}%`;
+  $("confidenceBar").style.width=`${decision.confidence}%`;
+  $("strikeAlerts").innerHTML=decision.alerts.map(a=>`<div class="strike-alert ${a.level}">${a.level==="red"?"ALERTA":a.level==="yellow"?"PRECAUCIÓN":"VALIDACIÓN"}: ${a.text}</div>`).join("");
+  $("planReasons").innerHTML=decision.reasons.map(x=>`<li>${x}</li>`).join("");
+
+  const visible=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))
+    .slice(0,CONFIG.maxRows).sort((a,b)=>a.strike-b.strike);
+  $("chainBody").innerHTML=visible.map(r=>`<tr class="${Math.abs(r.strike-spot)<1?"atm":""}">
+    <td>${r.strike.toFixed(2)}</td><td>${Number.isFinite(r.callDelta)?r.callDelta.toFixed(3):"—"}</td>
+    <td>${pct(r.callIv)}</td><td>${compact(r.callVolume)}</td><td>${compact(r.callOi)}</td><td>${Number.isFinite(r.callGamma)?r.callGamma.toFixed(4):"—"}</td><td>${Number.isFinite(r.callTheta)?r.callTheta.toFixed(3):"—"}</td>
+    <td>${Number.isFinite(r.putTheta)?r.putTheta.toFixed(3):"—"}</td><td>${Number.isFinite(r.putGamma)?r.putGamma.toFixed(4):"—"}</td><td>${compact(r.putOi)}</td><td>${compact(r.putVolume)}</td><td>${pct(r.putIv)}</td>
+    <td>${Number.isFinite(r.putDelta)?r.putDelta.toFixed(3):"—"}</td></tr>`).join("");
+}
+
+let loadSequence=0;
+async function load(preserveExpiry=false){
+  const sequence=++loadSequence,symbol=state.symbol,isIndex=Boolean(CBOE_SYMBOLS.has(symbol));
+  try{
+    setStatus(`Consultando ${symbol}…`);
+    $("refresh").disabled=true;
+    $("spot").textContent="—";$("source").textContent="Esperando datos de "+symbol+"…";
+    const old=$("expiry").value;
+    let quote=null;
+    if(isIndex){
+      clearAnalysis();$("spot").textContent="—";$("source").textContent="Consultando precio independiente…";
+      try{
+        quote=await fetchIndexQuote(symbol);
+        if(sequence!==loadSequence)return;
+        $("spot").textContent=money(quote.price);
+        $("source").textContent=`${quote.source} · ${new Date(quote.timestamp).toLocaleString("es-PR")} · ${quote.delayed?"retrasado":"cotización"}`;
+      }catch(error){if(sequence!==loadSequence)return;$("source").textContent=`Precio no disponible: ${error.message}`;}
+      if(!quote){setStatus(`No hay precio verificable para ${symbol}; análisis desactivado.`,"err");return;}
+    }
+    let raw;
+    try{raw=await fetchChain(symbol)}catch(error){
+      if(sequence!==loadSequence)return;
+      if(isIndex){setStatus(`${symbol}: precio actualizado; cadena de opciones no disponible (${error.message}). Análisis desactivado.`,"err");return;}
+      throw error;
+    }
+    if(sequence!==loadSequence)return;
+    if(isIndex&&chainTooOld(raw.chainTimestamp)){
+      setStatus(`${symbol}: precio independiente actualizado; la cadena Cboe está atrasada (${raw.chainTimestamp||"sin hora"}). Análisis desactivado.`,"err");
+      return;
+    }
+    if(isIndex){raw.spot=quote.price;raw.source=`${quote.source} (precio) · Cboe (opciones ${raw.chainTimestamp||"sin hora"})`;}
+    if(!raw.spot) throw new Error("Nasdaq no devolvió el precio.");
+    recordPrice(symbol,raw.spot);
+    state.raw=raw; state.rows=enrichRows(raw.rows,raw.spot);
+    const available=populateExpiry(preserveExpiry ? old : "");
+    if(available){
+      render(); setStatus(`${symbol} actualizado correctamente. Próxima actualización automática en 1 minuto.`,"ok");
+    }else{
+      setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${symbol}.`,"err");
+    }
+  }catch(err){if(sequence===loadSequence){clearAnalysis();setStatus(`Error al consultar ${symbol}: ${err.message}. Comprueba la conexión con el Worker.`,"err");$("source").textContent="Sin datos de "+symbol;}}
+  finally{if(sequence===loadSequence)$("refresh").disabled=false;}
+}
+
+document.querySelectorAll(".symbol").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".symbol").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); state.symbol=btn.dataset.symbol; load(false);
+}));
+$("expiry").addEventListener("change",()=>{
+  const selected=state.rows.find(r=>r.expiryKey===$("expiry").value);
+  if(selected){
+    const type=expiryType(selected.expiry);
+    $("expiryFilter").value=type;
+    populateExpiry(selected.expiryKey);
+  }
+  render();
+});
+$("expiryFilter").addEventListener("change",()=>{
+  const available=populateExpiry("");
+  if(available)render();
+  else setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${state.symbol}.`,"err");
+});
+$("delta").addEventListener("change",render);
+$("deltaDebit").addEventListener("change",render);
+$("refresh").addEventListener("click",()=>load(true));
+
+load(false);
+state.timer=setInterval(()=>load(true),CONFIG.refreshMs);
+
+</script>
+</body></html>
