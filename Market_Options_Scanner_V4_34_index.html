@@ -1,0 +1,1883 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" type="image/png" href="market-options-scanner-logo.png"><link rel="apple-touch-icon" href="market-options-scanner-logo.png">
+<title>Market Options Scanner V4.34</title><style>
+:root{--bg:#090d13;--panel:#111824;--panel2:#151f2d;--line:#263244;--text:#eef4fb;--muted:#8fa0b5;--green:#3ddc97;--red:#ff6b73;--blue:#57a8ff;--gold:#f2c14e;--purple:#bd93f9}
+.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:62px;height:62px;object-fit:contain;filter:drop-shadow(0 0 12px #19cfff38);flex:0 0 auto}.brand-copy h1{font-size:20px;margin:0}.brand-copy p{margin:4px 0 0;color:var(--muted);font-size:12px}@media(max-width:420px){.brand-logo{width:52px;height:52px}}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#070a0f,#0c121b 45%,#090d13);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:1180px;margin:auto;padding:18px}.topbar{display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16px}.brand h1{font-size:20px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:12px}.controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.control-group{display:flex;flex-direction:column;gap:5px}.control-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}.segmented{display:flex;gap:6px}.expiry-group select{min-width:175px}button,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-weight:650}button{cursor:pointer}.symbol.active{border-color:var(--blue);box-shadow:0 0 0 2px #57a8ff22}.refresh{background:var(--blue);color:#05101d;border:0}.status{padding:10px 13px;border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.status.err{color:var(--red)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 10px 30px #0004}.card h2{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800}.sub{color:var(--muted);font-size:12px;margin-top:6px}.wide{grid-column:span 2}.full{grid-column:1/-1}.positive{color:var(--green)}.negative{color:var(--red)}.gold{color:var(--gold)}.purple{color:var(--purple)}.table-wrap{overflow:auto;max-height:520px;border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;background:#101722;color:var(--muted);z-index:1}th,td{padding:9px 8px;border-bottom:1px solid #233044;text-align:right}th:first-child,td:first-child{text-align:left}.atm{background:#57a8ff12}.bar{height:8px;background:#263244;border-radius:8px;overflow:hidden;margin-top:10px}.bar>span{display:block;height:100%;background:var(--blue)}.note{color:var(--muted);font-size:11px;line-height:1.5}.strategy{font-size:18px;font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.metric{font-size:22px}.two{grid-template-columns:1fr}}@media(max-width:420px){.app{padding:12px}.grid{gap:9px}.card{padding:12px}.controls{width:100%;display:grid;grid-template-columns:1fr 1fr}.control-group{width:100%}.expiry-group{grid-column:1/-1}.expiry-group select{width:100%;min-width:0}.segmented{width:100%}.segmented button{flex:1}.controls select{width:100%}.refresh{grid-column:1/-1;width:100%}.status{width:100%}}
+
+.badge{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:999px;font-size:10px;font-weight:800;margin-right:5px}.badge.daily{color:var(--blue)}.badge.weekly{color:var(--gold)}.badge.monthly{color:var(--purple)}.decision{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.decision div{background:#0b111a;border:1px solid var(--line);border-radius:10px;padding:10px}.decision b{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:5px}.reasons{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.55}.confidence{height:9px;background:#263244;border-radius:8px;overflow:hidden;margin-top:9px}.confidence span{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold),var(--green))}@media(max-width:760px){.decision{grid-template-columns:1fr 1fr}}@media(max-width:420px){.segmented{display:grid!important;grid-template-columns:repeat(3,1fr)}.segmented button{padding:9px 5px!important}.decision{grid-template-columns:1fr}}
+.strike-alerts{display:grid;gap:7px;margin-top:10px}.strike-alert{border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700}.strike-alert.yellow{color:#ffd166;background:#ffd16615;border:1px solid #ffd16666}.strike-alert.red{color:#ff6b73;background:#ff5f6d15;border:1px solid #ff5f6d66}.strike-alert.green{color:#3ddc97;background:#3ddc9712;border:1px solid #3ddc9755}
+.ranking{display:grid;gap:8px}.rank-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .7fr;gap:8px;align-items:center;padding:9px 10px;background:#0b111a;border:1px solid var(--line);border-radius:10px;font-size:12px}.rank-row.winner{border-color:#3ddc9788;background:#3ddc970b}.rank-row b{color:var(--text)}.rank-row span{text-align:right;color:var(--muted)}@media(max-width:600px){.rank-row{grid-template-columns:1fr 1fr}.rank-row span{text-align:left}}
+.screen-tabs{position:fixed;z-index:20;bottom:0;left:0;right:0;display:flex;gap:8px;padding:10px max(12px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:#080e18f5;border-top:1px solid var(--line)}.screen-tabs button{flex:1;font-size:14px}.screen-tabs button.active{border-color:var(--blue);color:var(--blue)}.app{padding-bottom:90px}body.monitor-mode .controls,body.monitor-mode #analysisScreen{display:none}#monitorScreen[hidden]{display:none}.monitor-list{display:grid;gap:12px;margin-top:14px}.monitor-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:17px}.monitor-head{display:flex;justify-content:space-between;gap:10px;align-items:start}.monitor-symbol{font-size:21px;font-weight:850}.monitor-price{font-size:27px;font-weight:850;font-variant-numeric:tabular-nums}.monitor-strategy{font-size:17px;font-weight:800;margin-top:14px;line-height:1.25}.monitor-meta{font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px}.monitor-error{color:var(--red)}.monitor-good{color:var(--green)}
+.leg-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}.leg-item{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#0b111a;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}.leg-item.buy{border-left:3px solid var(--green)}.leg-item.sell{border-left:3px solid var(--gold)}.leg-list:empty{display:none}@media(max-width:520px){.leg-list{grid-template-columns:1fr}}
+.position-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.position-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.position-form input,.position-form select{width:100%;min-width:0;background:#0b111a;border:1px solid var(--line);color:var(--text);padding:12px;border-radius:9px;font:inherit;font-size:16px}.position-form .full{grid-column:1/-1}.position-leg{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;padding:10px;background:#0b111a;border-radius:10px}.position-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.position-actions button{flex:1}.position-card{margin-top:14px}.position-result{font-size:19px;font-weight:800;line-height:1.4;margin:12px 0}.position-pnl{font-size:27px;font-weight:850}.position-notes{font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-line}.position-close{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:10px}.position-close[hidden]{display:none}.position-close input{max-width:100%}#positionsScreen[hidden]{display:none}.screen-tabs button{padding:10px 6px}.position-summary{margin:12px 0}@media(max-width:520px){.position-form{grid-template-columns:1fr}.position-leg{grid-template-columns:1fr 1fr}.screen-tabs button{font-size:12px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><img class="brand-logo" src="market-options-scanner-logo.png" alt="Logo Market Options Scanner"><div class="brand-copy"><h1>Market Options Scanner <span class="gold">V4.34</span></h1><p>SPY · SPX · XSP · QQQ | régimen, volatilidad y spreads</p></div></div>
+    <div class="controls">
+      <div class="control-group">
+        <span class="control-label">Símbolo</span>
+        <div class="segmented">
+          <button class="symbol active" data-symbol="SPY">SPY</button>
+          <button class="symbol" data-symbol="SPX">SPX</button>
+          <button class="symbol" data-symbol="XSP">XSP</button>
+          <button class="symbol" data-symbol="QQQ">QQQ</button>
+        </div>
+      </div>
+      <div class="control-group expiry-group">
+        <span class="control-label">Expiración</span>
+        <select id="expiry" aria-label="Seleccionar fecha de expiración"></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Vista</span>
+        <select id="expiryFilter" aria-label="Filtrar expiraciones">
+          <option value="all">Todas</option>
+          <option value="daily">Diarias</option>
+          <option value="weekly">Semanal</option>
+          <option value="monthly">Mensual</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Delta crédito</span>
+        <select id="delta"><option value=".15">Δ 0.15</option><option value=".20" selected>Δ 0.20</option><option value=".25">Δ 0.25</option><option value=".30">Δ 0.30</option></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Delta débito</span>
+        <select id="deltaDebit"><option value=".50">Δ 0.50</option><option value=".55">Δ 0.55</option><option value=".60" selected>Δ 0.60</option><option value=".65">Δ 0.65</option><option value=".70">Δ 0.70</option><option value=".80">Δ 0.80</option><option value=".90">Δ 0.90</option></select>
+      </div>
+      <button id="refresh" class="refresh">Actualizar</button>
+    </div>
+  </header>
+  <div id="analysisScreen"><div id="status" class="status">Preparando conexión…</div>
+
+  <section class="grid" style="margin-top:12px">
+    <article class="card"><h2>Precio</h2><div id="spot" class="metric">—</div><div id="source" class="sub">—</div></article>
+    <article class="card"><h2>Balance gamma aproximado</h2><div id="netGex" class="metric">—</div><div class="sub">OI calls positivos; OI puts negativos. No es GEX neto de dealers.</div></article>
+    <article class="card"><h2>Call Wall</h2><div id="callWall" class="metric positive">—</div><div id="callWallOi" class="sub">—</div></article>
+    <article class="card"><h2>Put Wall</h2><div id="putWall" class="metric negative">—</div><div id="putWallOi" class="sub">—</div></article>
+
+    <article class="card"><h2>Max Pain</h2><div id="maxPain" class="metric purple">—</div><div class="sub">Estimación por open interest</div></article>
+    <article class="card"><h2>Cruce gamma aproximado</h2><div id="zeroGamma" class="metric gold">—</div><div class="sub">No es el gamma flip real de dealers</div></article>
+    <article class="card"><h2>IV ATM estimada</h2><div id="atmIv" class="metric">—</div><div class="sub">Inferida de precios bid/ask</div></article>
+    <article class="card"><h2>Expected Move</h2><div id="expectedMove" class="metric">—</div><div id="expectedMoveBasis" class="sub">1 desviación estándar hasta cierre ET</div></article>
+
+    <article class="card wide"><h2>Estrategia sugerida</h2><div id="strategy" class="strategy">—</div><div id="strategyDetail" class="sub">—</div></article>
+    <article class="card wide"><h2>Contexto aproximado por gamma</h2><div id="regime" class="strategy">—</div><div id="regimeDetail" class="sub">—</div></article>
+
+    <article class="card full"><h2>Verificación del movimiento</h2><div class="decision">
+      <div><b>Dirección</b><span id="movementDirection">—</span></div><div><b>Confluencia</b><span id="movementScore">—</span></div>
+      <div><b>Put/Call OI</b><span id="movementPcr">—</span></div><div><b>Skew IV</b><span id="movementSkew">—</span></div>
+    </div><ul id="movementFactors" class="reasons"></ul></article>
+
+    <article class="card full"><h2>Contexto diario y confirmación 15 minutos</h2>
+      <div id="dailyTrend" class="strategy">Consultando histórico…</div>
+      <div id="dailyIndicators" class="sub">Medias 20/50/200, ADX 14, +DI/-DI y RSI 14.</div>
+      <div id="intradayConfirmation" class="sub">—</div>
+    </article>
+
+    <article class="card full"><h2>Convergencia SPY / QQQ · apertura</h2><div id="openingSignal" class="strategy">—</div><div id="openingDetails" class="sub">Rango 9:30–9:45 ET, premercado y VWAP de ambos ETF.</div></article>
+
+    <article class="card full"><h2>DTE recomendado para este símbolo</h2><div id="bestDte" class="strategy">—</div><div id="bestDteLegs" class="leg-list" aria-label="Patas de la estrategia recomendada"></div><div id="bestDteReason" class="sub">Comparando la cadena de 0 a 7 días…</div><button id="useBestDte" type="button" hidden>Usar DTE recomendado</button></article>
+
+    <article class="card full"><h2>Retroceso y vela de confirmación</h2><div id="fibSignal" class="strategy">—</div><div id="fibDetails" class="sub">Buscando impulso y retroceso en velas completas de 5 minutos.</div></article>
+    <article class="card full"><h2>Estructura y velocidad del movimiento</h2><div id="techSignal" class="strategy">—</div><div id="techDetails" class="sub">ATR, velocidad y cambio del impulso en velas cerradas.</div><div class="sub">Flujo de grandes operaciones: no disponible; la cadena no identifica compradores, vendedores ni coberturas institucionales.</div></article>
+
+    <article class="card full"><h2>Comparación de estrategias</h2><div id="strategyRanking" class="ranking"></div><div class="sub">Puntuación relativa: tendencia inferida, IV, griegas, OI, volumen, bid/ask y riesgo. No representa probabilidad estadística.</div></article>
+
+    <article class="card full"><h2>Plan de operación</h2><div id="expiryBadge"></div><div class="decision">
+      <div><b>Strikes</b><span id="planStrikes">—</span></div><div><b>Crédito / débito</b><span id="planPremium">—</span></div>
+      <div><b>Riesgo máximo</b><span id="planRisk">—</span></div><div><b>Ganancia máxima</b><span id="planGain">—</span></div>
+      <div><b>Confirmación</b><span id="planTrigger">—</span></div><div><b>Calidad de señal</b><span id="planConfidence">—</span></div>
+      <div><b>Beneficio al vencimiento (modelo)</b><span id="planProbability">—</span></div><div><b>Base del cálculo</b><span id="planProbabilityBasis">—</span></div>
+      <div><b>Equilibrio al vencimiento</b><span id="planBreakEven">—</span></div><div><b>Liquidez y vencimiento</b><span id="planExecution">—</span></div>
+      <div><b>Ganancia / pérdida máximas</b><span id="planRatio">—</span></div>
+    </div><div id="planLegs" class="leg-list" aria-label="Patas de la operación seleccionada"></div><div class="confidence"><span id="confidenceBar" style="width:0%"></span></div><div id="strikeAlerts" class="strike-alerts"></div><ul id="planReasons" class="reasons"></ul></article>
+
+    <article class="card full"><h2>Cadena seleccionada</h2><div class="table-wrap"><table>
+      <thead><tr><th>Strike</th><th>Call Δ</th><th>Call IV</th><th>Call Vol.</th><th>Call OI</th><th>Call Γ</th><th>Call Θ</th><th>Put Θ</th><th>Put Γ</th><th>Put OI</th><th>Put Vol.</th><th>Put IV</th><th>Put Δ</th></tr></thead>
+      <tbody id="chainBody"></tbody></table></div>
+    </article>
+    <article class="card full note">El porcentaje modela la probabilidad de terminar con beneficio al vencimiento bajo IV constante y una distribución lognormal, antes de comisiones y costos de cierre. La convergencia SPY/QQQ afecta la selección de estrategias, no cambia el porcentaje sin una calibración histórica. No es una tasa histórica de aciertos ni predice la ganancia antes del vencimiento. La calidad de señal es un puntaje interno distinto. Balance gamma aproximado: OI × gamma × 100 × precio² × 1%; no mide la posición neta real de creadores de mercado. Velas y opciones pueden tener retrasos distintos. Verifica cotización, noticias y orden completa en tu corredor antes de operar.</article>
+  </section></div>
+  <section id="monitorScreen" hidden aria-label="Monitoreo automático">
+    <h2 style="margin:14px 0 4px">Monitoreo · SPY, QQQ, XSP y SPX</h2>
+    <div id="monitorStatus" class="note">Se actualiza cada 2 minutos mientras esta pantalla está abierta.</div>
+    <div id="monitorList" class="monitor-list"></div>
+  </section>
+  <section id="positionsScreen" hidden aria-label="Operaciones abiertas">
+    <h2>Mis operaciones</h2>
+    <p class="note">Registra tu ejecución real. Se revisa cada 2 minutos mientras la app está visible. Las sugerencias no envían órdenes al broker; el iPhone puede suspender la revisión al bloquearse o cambiar de app.</p>
+    <article class="card">
+      <h2 id="positionFormTitle">Registrar operación</h2>
+      <form id="positionForm" class="position-form">
+        <label>Símbolo<input id="positionSymbol" list="positionSymbols" value="SPY" maxlength="4" autocomplete="off" required><datalist id="positionSymbols"><option value="SPY"><option value="QQQ"><option value="XSP"><option value="SPX"></datalist></label>
+        <label>Estrategia<select id="positionStrategy" required></select></label>
+        <label>Fecha de expiración<input id="positionExpiry" type="date" required></label>
+        <label>Cierre de referencia ET (ajusta en sesión corta)<input id="positionCloseTime" type="time" min="09:30" max="16:00" value="16:00" required></label>
+        <label>Cantidad de estructuras<input id="positionQuantity" type="number" min="1" max="10000" step="1" value="1" required></label>
+        <div id="positionLegInputs" class="full leg-list"></div>
+        <label>Prima neta real de apertura (por acción)<input id="positionEntry" type="number" min="0.01" step="0.01" placeholder="Ej. 0.35 = $35 por estructura" required><span id="positionEntryType">Crédito recibido</span></label>
+        <label>Costos totales previstos de apertura + cierre ($)<input id="positionFees" type="number" min="0" step="0.01" value="0" required></label>
+        <label>Objetivo de ganancia total ($)<input id="positionTarget" type="number" min="0.01" step="0.01" placeholder="Tu objetivo para toda la posición" required></label>
+        <label>Límite de pérdida total ($)<input id="positionLoss" type="number" min="0.01" step="0.01" placeholder="Tu presupuesto de pérdida" required></label>
+        <label>Plan de vencimiento<select id="positionPolicy"><option value="close">Evaluar cierre antes de vencer</option><option value="expiry">Evaluar mantener hacia vencimiento</option></select></label>
+        <label>Anticipación del aviso de vencimiento (minutos)<input id="positionCutoff" type="number" min="15" max="390" step="1" value="30" required></label>
+        <label>Invalidación: salir si precio ≤ (opcional)<input id="positionLower" type="number" min="0.01" step="0.01"></label>
+        <label>Invalidación: salir si precio ≥ (opcional)<input id="positionUpper" type="number" min="0.01" step="0.01"></label>
+        <div id="positionPreview" class="note full">Completa las patas y la prima para calcular riesgo y ganancia máximos.</div>
+        <div class="position-actions full"><button class="refresh" type="submit" id="positionSave">Guardar operación</button><button type="button" id="positionCancel" hidden>Cancelar edición</button></div>
+      </form>
+      <div id="positionFormMessage" class="note" role="status"></div>
+    </article>
+    <div class="position-actions"><button type="button" id="positionsRefresh">Revisar ahora</button></div>
+    <div id="positionsStatus" class="note position-summary" role="status">Sin operaciones registradas.</div>
+    <div id="positionsList"></div>
+    <details style="margin-top:18px"><summary>Operaciones cerradas</summary><div id="closedPositionsList"></div></details>
+  </section>
+</main>
+<nav class="screen-tabs" aria-label="Cambiar pantalla"><button id="analysisTab" class="active" type="button">Análisis</button><button id="monitorTab" type="button">Monitoreo</button><button id="positionsTab" type="button">Operaciones</button></nav>
+<script>
+const CONFIG = {
+  workerBase: "https://young-term-3722.arnaldo-aviles830.workers.dev",
+  refreshMs: 60000,
+  riskFreeRate: 0.043,
+  defaultSymbol: "SPY",
+  defaultDelta: 0.20,
+  maxRisk: 200,
+  minConfidence: 70,
+  maxRows: 28
+};
+
+const INSTRUMENTS={
+  SPY:{width:1,family:"S&P 500 ETF",settlement:"Acciones · americano"},
+  SPX:{width:5,family:"S&P 500 Index",settlement:"Efectivo · europeo"},
+  XSP:{width:1,family:"Mini-SPX Index",settlement:"Efectivo · europeo"},
+  QQQ:{width:1,family:"Nasdaq-100 ETF",settlement:"Acciones · americano"},
+  NDX:{width:5,family:"Nasdaq-100 Index",settlement:"Efectivo · europeo"},
+  XND:{width:1,family:"Micro Nasdaq-100 Index",settlement:"Efectivo · europeo"}
+};
+const CBOE_SYMBOLS=new Set(["SPX","XSP","NDX","XND"]);
+
+
+const SQRT_2PI = Math.sqrt(2 * Math.PI);
+
+function normPdf(x) {
+  return Math.exp(-0.5 * x * x) / SQRT_2PI;
+}
+
+function normCdf(x) {
+  const sign = x < 0 ? -1 : 1;
+  const z = Math.abs(x) / Math.sqrt(2);
+  const t = 1 / (1 + 0.3275911 * z);
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429;
+  const erf = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-z*z);
+  return 0.5 * (1 + sign * erf);
+}
+
+function bsPrice(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) return 0;
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  if (type === "call") return S*normCdf(d1) - K*Math.exp(-r*T)*normCdf(d2);
+  return K*Math.exp(-r*T)*normCdf(-d2) - S*normCdf(-d1);
+}
+
+function impliedVol(type, marketPrice, S, K, T, r) {
+  if (!(marketPrice > 0 && S > 0 && K > 0 && T > 0)) return null;
+  const intrinsic = type === "call" ? Math.max(0, S-K) : Math.max(0, K-S);
+  if (marketPrice < intrinsic) return null;
+  let lo = 0.01, hi = 5;
+  for (let i=0; i<70; i++) {
+    const mid = (lo+hi)/2;
+    const p = bsPrice(type, S, K, T, r, mid);
+    if (p > marketPrice) hi = mid; else lo = mid;
+  }
+  const iv = (lo+hi)/2;
+  return Number.isFinite(iv) ? iv : null;
+}
+
+function greeks(type, S, K, T, r, sigma) {
+  if (!(S > 0 && K > 0 && T > 0 && sigma > 0)) {
+    return {delta:null, gamma:null, theta:null};
+  }
+  const rt = Math.sqrt(T);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T)/(sigma*rt);
+  const d2 = d1 - sigma*rt;
+  const gamma = normPdf(d1)/(S*sigma*rt);
+  const delta = type === "call" ? normCdf(d1) : normCdf(d1)-1;
+  const first = -(S*normPdf(d1)*sigma)/(2*rt);
+  const theta = type === "call"
+    ? (first - r*K*Math.exp(-r*T)*normCdf(d2))/365
+    : (first + r*K*Math.exp(-r*T)*normCdf(-d2))/365;
+  return {delta, gamma, theta};
+}
+
+function gexValue(type, oi, gamma, spot) {
+  if (!(oi >= 0 && gamma >= 0 && spot > 0)) return 0;
+  const raw = oi * gamma * 100 * spot * spot * 0.01;
+  return type === "call" ? raw : -raw;
+}
+
+function maxPain(rows) {
+  if (!rows.length) return null;
+  const strikes = [...new Set(rows.map(r => r.strike))].sort((a,b)=>a-b);
+  let best = null;
+  for (const settle of strikes) {
+    let pain = 0;
+    for (const r of rows) {
+      pain += Math.max(0, settle-r.strike) * r.callOi * 100;
+      pain += Math.max(0, r.strike-settle) * r.putOi * 100;
+    }
+    if (!best || pain < best.pain) best = {strike:settle, pain};
+  }
+  return best?.strike ?? null;
+}
+
+
+
+function num(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/[$,%\s,]/g, "");
+  if (!s || s === "--") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseLastTrade(text) {
+  const m = String(text || "").match(/\$([\d,.]+)/);
+  return m ? num(m[1]) : null;
+}
+
+function expiryYear(month, day, now = new Date()) {
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const mm = months[month];
+  if (mm === undefined) return now.getFullYear();
+  let y = now.getFullYear();
+  const d = new Date(y, mm, day, 16, 0, 0);
+  if (d.getTime() < now.getTime() - 86400000*30) y++;
+  return y;
+}
+
+function normalizeDate(label) {
+  if (!label) return null;
+  const m = String(label).match(/([A-Z][a-z]{2})\s+(\d{1,2})(?:,\s*(\d{4}))?/);
+  if (!m) return null;
+  const monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const year = m[3] ? Number(m[3]) : expiryYear(m[1], Number(m[2]));
+  return new Date(year, monthMap[m[1]], Number(m[2]), 16, 0, 0);
+}
+
+async function fetchChain(symbol) {
+  const url = `${CONFIG.workerBase}/options?symbol=${encodeURIComponent(symbol)}`;
+  const response = await fetchWorker(url);
+  if (!response.ok){const problem=await response.json().catch(()=>({}));throw new Error(problem.error||`Worker HTTP ${response.status}`);}
+  const payload = await response.json();
+  const table = payload?.data?.table;
+  const rawRows = table?.rows;
+  if (!Array.isArray(rawRows)) throw new Error("La respuesta no contiene la cadena.");
+  const spot = parseLastTrade(payload?.data?.lastTrade);
+
+  let currentExpiry = null;
+  const rows = [];
+  for (const row of rawRows) {
+    if (row.expirygroup) {
+      currentExpiry = normalizeDate(row.expirygroup);
+      continue;
+    }
+    const strike = num(row.strike);
+    if (!strike) continue;
+    const explicit = normalizeDate(row.expiryDate);
+    const expiry = explicit || currentExpiry;
+    if (!expiry) continue;
+
+    rows.push({
+      expiry,
+      expiryKey: expiry.toISOString().slice(0,10),
+      strike,
+      callBid: num(row.c_Bid),
+      callAsk: num(row.c_Ask),
+      callLast: num(row.c_Last),
+      callVolume: num(row.c_Volume) || 0,
+      callOi: num(row.c_Openinterest) || 0,
+      callDeltaNative: num(row.c_Delta),
+      callIvNative: num(row.c_IV),
+      callGammaNative: num(row.c_Gamma),
+      callThetaNative: num(row.c_Theta),
+      putBid: num(row.p_Bid),
+      putAsk: num(row.p_Ask),
+      putLast: num(row.p_Last),
+      putVolume: num(row.p_Volume) || 0,
+      putOi: num(row.p_Openinterest) || 0,
+      putDeltaNative: num(row.p_Delta),
+      putIvNative: num(row.p_IV),
+      putGammaNative: num(row.p_Gamma),
+      putThetaNative: num(row.p_Theta)
+    });
+  }
+  const source=payload?.meta?.source ? `${payload.meta.source} vía Cloudflare` : "Nasdaq vía Cloudflare";
+  return {symbol, spot, rows, fetchedAt:new Date(), source, chainTimestamp:payload?.meta?.timestamp||null};
+}
+
+async function fetchWorker(url){
+  try{return await fetch(url,{cache:"no-store"});}
+  catch(firstError){
+    // A brief connection drop should not blank SPY/QQQ on the first attempt.
+    await new Promise(resolve=>setTimeout(resolve,800));
+    return fetch(url,{cache:"no-store"});
+  }
+}
+
+async function fetchIndexQuote(symbol){
+  const response=await fetchWorker(`${CONFIG.workerBase}/quote?symbol=${encodeURIComponent(symbol)}`);
+  const payload=await response.json();
+  if(!response.ok||!(Number(payload.price)>0)||!Number.isFinite(Date.parse(payload.timestamp))){
+    throw new Error(payload.error||`Cotización ${symbol} no disponible`);
+  }
+  return payload;
+}
+
+function indexMarketOpen(){
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const get=key=>parts.find(x=>x.type===key)?.value;
+  const minute=Number(get("hour"))*60+Number(get("minute"));
+  return !["Sat","Sun"].includes(get("weekday"))&&minute>=570&&minute<960;
+}
+
+function chainTooOld(timestamp,maxAgeMinutes=90){
+  const match=String(timestamp||"").match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if(!match)return true;
+  const [,y,m,d,h,min,sec]=match.map(Number);
+  const wall=Date.UTC(y,m-1,d,h,min,sec);
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(wall));
+  const field=type=>Number(parts.find(x=>x.type===type)?.value);
+  const easternWall=Date.UTC(field("year"),field("month")-1,field("day"),field("hour"),field("minute"),field("second"));
+  const asEastern=wall+(wall-easternWall);
+  // Cboe does not mark the JSON timestamp's zone. Accept only an interpretation
+  // whose timestamp is plausible now; never accept a future date as "fresh".
+  return ![wall,asEastern].some(time=>{
+    const age=Date.now()-time;
+    return Number.isFinite(age)&&age>=-2*60000&&age<=maxAgeMinutes*60000;
+  });
+}
+
+function clearAnalysis(){
+  state.raw=null;state.rows=[];state.trendContext=null;state.openingContext=null;
+  $("openingSignal").textContent="—";$("openingDetails").textContent="Rango 9:30–9:45 ET, premercado y VWAP de ambos ETF.";
+  $("bestDte").textContent="—";$("bestDteLegs").replaceChildren();$("bestDteReason").textContent="Comparando la cadena de 0 a 7 días…";$("useBestDte").hidden=true;
+  $("fibSignal").textContent="—";$("fibDetails").textContent="Buscando impulso y retroceso en velas completas de 5 minutos.";
+  $("expiry").replaceChildren();
+  $("expectedMoveBasis").textContent="1 desviación estándar hasta cierre ET";
+  for(const id of ["netGex","callWall","callWallOi","putWall","putWallOi","maxPain","zeroGamma","atmIv","expectedMove","strategy","strategyDetail","regime","regimeDetail","movementDirection","movementScore","movementPcr","movementSkew","planStrikes","planPremium","planRisk","planGain","planTrigger","planConfidence","planProbability","planProbabilityBasis","planBreakEven","planExecution"]){$(id).textContent="—";}
+  for(const id of ["movementFactors","strategyRanking","expiryBadge","planLegs","strikeAlerts","planReasons","chainBody"]){$(id).replaceChildren();}
+  $("confidenceBar").style.width="0%";
+  $("techSignal").textContent="—";$("techDetails").textContent="Sin velas verificadas.";$("planRatio").textContent="—";
+  $("dailyTrend").textContent="Consultando histórico…";
+  $("dailyIndicators").textContent="Medias 20/50/200, ADX 14, +DI/-DI y RSI 14.";
+  $("intradayConfirmation").textContent="—";
+}
+
+function midpoint(bid, ask, last) {
+  if (bid !== null && ask !== null && ask >= bid && ask > 0) return (bid+ask)/2;
+  return last && last > 0 ? last : null;
+}
+
+function enrichRows(rows, spot, symbol=state.symbol) {
+  const now = Date.now();
+  return rows.map(row => {
+    const T = Math.max(0,(expiryCloseTime(row.expiry,symbol)-now)/(365*86400000));
+    const callMid = midpoint(row.callBid,row.callAsk,row.callLast);
+    const putMid = midpoint(row.putBid,row.putAsk,row.putLast);
+    const normalizeIv=v=>Number.isFinite(v)&&v>0?(v>2?v/100:v):null;
+    const validCallDelta=Number.isFinite(row.callDeltaNative)&&row.callDeltaNative>.001&&row.callDeltaNative<.999;
+    const validPutDelta=Number.isFinite(row.putDeltaNative)&&Math.abs(row.putDeltaNative)>.001&&Math.abs(row.putDeltaNative)<.999;
+    const nativeCallIv=normalizeIv(row.callIvNative), nativePutIv=normalizeIv(row.putIvNative);
+    const estimatedCallIv = impliedVol("call",callMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const estimatedPutIv = impliedVol("put",putMid,spot,row.strike,T,CONFIG.riskFreeRate);
+    const callIv = nativeCallIv ?? estimatedCallIv;
+    const putIv = nativePutIv ?? estimatedPutIv;
+    const cg = callIv ? greeks("call",spot,row.strike,T,CONFIG.riskFreeRate,callIv) : {};
+    const pg = putIv ? greeks("put",spot,row.strike,T,CONFIG.riskFreeRate,putIv) : {};
+    const callDelta=validCallDelta?row.callDeltaNative:cg.delta;
+    const putDelta=validPutDelta?row.putDeltaNative:pg.delta;
+    const callGamma=Number.isFinite(row.callGammaNative)&&row.callGammaNative>0?row.callGammaNative:cg.gamma;
+    const putGamma=Number.isFinite(row.putGammaNative)&&row.putGammaNative>0?row.putGammaNative:pg.gamma;
+    const callTheta=Number.isFinite(row.callThetaNative)&&row.callThetaNative!==0?row.callThetaNative:cg.theta;
+    const putTheta=Number.isFinite(row.putThetaNative)&&row.putThetaNative!==0?row.putThetaNative:pg.theta;
+    const callGex = gexValue("call",row.callOi,callGamma,spot);
+    const putGex = gexValue("put",row.putOi,putGamma,spot);
+    const deltaSource=validCallDelta||validPutDelta?"cadena":"estimado";
+    return {...row, T, callMid, putMid, callIv, putIv, callDelta,
+      putDelta, callGamma, putGamma,
+      callTheta, putTheta, deltaSource, callGex, putGex,
+      netGex:callGex+putGex};
+  });
+}
+
+
+
+const state = {symbol:CONFIG.defaultSymbol, raw:null, rows:[], timer:null, priceHistory:{}, candleSignal:null,trendContext:null,openingContext:null};
+async function fetchCandles(symbol){
+  const response=await fetchWorker(`${CONFIG.workerBase}/candles?symbol=${encodeURIComponent(symbol)}`);
+  const payload=await response.json();
+  if(!response.ok||payload.symbol!==symbol||!Array.isArray(payload.candles))throw new Error(payload.error||"Velas no disponibles");
+  return payload.candles;
+}
+async function verifiedCandleSignal(symbol,spot,opening,directResult){
+  let directReason="Velas del índice no disponibles.";
+  try{
+    if(directResult?.status==="rejected")throw directResult.reason;
+    const candles=directResult?.value??await fetchCandles(symbol);
+    const direct=analyzeCandles(candles,spot,symbol,opening);
+    if(direct.direction!=="SIN CONFIRMAR"||!/atrasad|Faltan velas|Velas incompletas/i.test(direct.reason))return direct;
+    directReason=direct.reason;
+  }catch(error){directReason=error.message||directReason;}
+  if(symbol!=="XSP")return {direction:"SIN CONFIRMAR",reason:directReason};
+  try{
+    const spyCandles=await fetchCandles("SPY");
+    const last=spyCandles.at(-1);
+    const proxy=analyzeCandles(spyCandles,last?.c,"SPY",opening);
+    if(proxy.direction==="SIN CONFIRMAR")throw new Error(proxy.reason);
+    return {...proxy,proxy:true,reason:`XSP sin vela reciente (${directReason}). Dirección de SPY como referencia del S&P 500; precio y opciones siguen siendo de XSP. ${proxy.reason}`};
+  }catch(error){return {direction:"SIN CONFIRMAR",reason:`XSP: ${directReason} Respaldo SPY no verificable: ${error.message}.`};}
+}
+async function fetchTrend(symbol){
+  const response=await fetchWorker(`${CONFIG.workerBase}/trend?symbol=${encodeURIComponent(symbol)}`);
+  const payload=await response.json();
+  if(!response.ok||payload.symbol!==symbol||!(payload.dailyClose>0)||!Number.isFinite(payload.adx))
+    throw new Error(payload.error||"Histórico diario no disponible");
+  return interpretTrend(payload);
+}
+async function fetchOpening(){
+  const response=await fetchWorker(`${CONFIG.workerBase}/opening`);
+  const data=await response.json();
+  if(!response.ok||!data.spy?.last||!data.qqq?.last)throw new Error(data.error||"Apertura SPY/QQQ no disponible");
+  return interpretOpening(data);
+}
+function interpretOpening({spy,qqq}){
+  if(spy.day!==qqq.day||Math.abs(spy.last.t-qqq.last.t)>5*60000)
+    throw new Error("Velas SPY/QQQ no sincronizadas");
+  const position=x=>x.last.c>x.vwap*1.0002?"sobre VWAP":x.last.c<x.vwap*.9998?"bajo VWAP":"en VWAP";
+  const above=x=>x.last.c>x.vwap*1.0002,below=x=>x.last.c<x.vwap*.9998;
+  const qBreak=qqq.last.c>qqq.openingHigh*1.0002;
+  const sBreak=spy.last.c<spy.openingLow*.9998;
+  const body=x=>Math.abs(x.last.c-x.last.o)/Math.max(.00001,x.last.h-x.last.l);
+  const upStrong=qqq.last.c>qqq.last.o&&body(qqq)>=.55&&(!qqq.relativeVolume||qqq.relativeVolume>=.8);
+  const downStrong=spy.last.c<spy.last.o&&body(spy)>=.55&&(!spy.relativeVolume||spy.relativeVolume>=.8);
+  const bullish=qBreak&&upStrong&&above(qqq)&&above(spy);
+  const bearish=sBreak&&downStrong&&below(spy)&&below(qqq);
+  const divergenceUp=qBreak&&below(spy),divergenceDown=qqq.last.c<qqq.openingLow*.9998&&above(spy);
+  const direction=bullish?"ALCISTA":bearish?"BAJISTA":divergenceUp||divergenceDown?"DIVERGENCIA":"SIN RUPTURA CONJUNTA";
+  const details=`SPY ${money(spy.last.c)} (${position(spy)}, rango ${money(spy.openingLow)}–${money(spy.openingHigh)}) · QQQ ${money(qqq.last.c)} (${position(qqq)}, rango ${money(qqq.openingLow)}–${money(qqq.openingHigh)}). `+
+    `Premercado SPY ${spy.premarketLow?money(spy.premarketLow)+"–"+money(spy.premarketHigh):"no disponible"}; QQQ ${qqq.premarketLow?money(qqq.premarketLow)+"–"+money(qqq.premarketHigh):"no disponible"}.`;
+  return {direction,divergenceUp,divergenceDown,details,spyVwap:spy.vwap,qqqVwap:qqq.vwap,day:spy.day};
+}
+function interpretTrend(data){
+  const alignedUp=data.dailyClose>data.sma50&&data.dailyClose>data.sma200;
+  const alignedDown=data.dailyClose<data.sma50&&data.dailyClose<data.sma200;
+  const direction=alignedUp?"ALCISTA":alignedDown?"BAJISTA":"INDEFINIDA";
+  const strongUp=alignedUp&&data.sma20>data.sma50&&data.sma20>data.sma20Prior&&data.sma50>data.sma50Prior;
+  const strongDown=alignedDown&&data.sma20<data.sma50&&data.sma20<data.sma20Prior&&data.sma50<data.sma50Prior;
+  const diDirection=data.plusDi>data.minusDi?"ALCISTA":data.minusDi>data.plusDi?"BAJISTA":"NEUTRAL";
+  const trendStrong=data.adx>=25&&diDirection===direction;
+  const range=data.adx<20;
+  const extreme=data.rsi>70||data.rsi<30;
+  const bars=Array.isArray(data.intraday15)?data.intraday15:[];
+  let fifteen={direction:"NO DISPONIBLE",rebound:false,reason:"Velas de 15 minutos no disponibles."};
+  if(bars.length>=20){
+    const last=bars.at(-1),prior=bars.at(-2),age=Date.now()-(last.t+900000);
+    if(age>=-2*60000&&age<=25*60000){
+      let ema=bars[0].c;const alpha=2/21;
+      for(const b of bars.slice(1))ema=alpha*b.c+(1-alpha)*ema;
+      const session=bars.filter(b=>new Date(b.t).toLocaleDateString("en-CA",{timeZone:"America/New_York"})===
+        new Date(last.t).toLocaleDateString("en-CA",{timeZone:"America/New_York"}));
+      const volume=session.reduce((sum,b)=>sum+(b.v>0?b.v:0),0);
+      const vwap=volume>0?session.reduce((sum,b)=>sum+((b.h+b.l+b.c)/3)*Math.max(0,b.v||0),0)/volume:null;
+      const anchor=vwap??ema;
+      const bullish=last.c>ema&&last.c>prior.c&&last.c>last.o;
+      const bearish=last.c<ema&&last.c<prior.c&&last.c<last.o;
+      const near=(b,side)=>side==="ALCISTA"?b.l<=anchor*1.0015:b.h>=anchor*.9985;
+      const direction15=bullish?"ALCISTA":bearish?"BAJISTA":"NEUTRAL";
+      const rebound=direction15!=="NEUTRAL"&&bars.slice(-4,-1).some(b=>near(b,direction15))&&
+        (direction15==="ALCISTA"?last.c>anchor:last.c<anchor);
+      fifteen={direction:direction15,rebound,age,
+        reason:`15m ${data.intraday15Basis||data.basis} ${direction15.toLowerCase()} · ${rebound?"rebote desde "+(vwap?"VWAP":"EMA20"):"sin rebote reciente"} · ${vwap?"VWAP":"EMA20"} ${money(anchor)}.`};
+    }else fifteen={direction:"ATRASADA",rebound:false,reason:"Velas de 15 minutos atrasadas."};
+  }
+  return {...data,direction,strongUp,strongDown,diDirection,trendStrong,range,extreme,fifteen};
+}
+function fibonacciPullback(candles,spot){
+  if(!Array.isArray(candles)||candles.length<18)return null;
+  const b=candles.slice(-40),n=b.length,last=b.at(-1),prev=b.at(-2);
+  const avgRange=b.slice(-20).reduce((sum,x)=>sum+Math.max(0,x.h-x.l),0)/Math.min(20,n);
+  if(!(avgRange>0))return null;
+  const low=[],high=[];
+  for(let i=2;i<n-2;i++){
+    if(b.slice(i-2,i+3).every((x,j)=>j===2||b[i].l<=x.l))low.push(i);
+    if(b.slice(i-2,i+3).every((x,j)=>j===2||b[i].h>=x.h))high.push(i);
+  }
+  const candidates=[];
+  for(const hi of high){
+    const lo=low.filter(i=>i<hi&&hi-i<=22).at(-1);
+    if(lo!==undefined&&hi<n-3)candidates.push({side:"ALCISTA",start:lo,end:hi,bottom:b[lo].l,top:b[hi].h});
+  }
+  for(const lo of low){
+    const hi=high.filter(i=>i<lo&&lo-i<=22).at(-1);
+    if(hi!==undefined&&lo<n-3)candidates.push({side:"BAJISTA",start:hi,end:lo,bottom:b[lo].l,top:b[hi].h});
+  }
+  candidates.sort((a,c)=>c.end-a.end);
+  for(const move of candidates){
+    const width=move.top-move.bottom;
+    if(width<Math.max(4*avgRange,spot*.001)||n-move.end>20)continue;
+    const body=Math.abs(last.c-last.o),range=Math.max(last.h-last.l,.00001);
+    const lower=Math.min(last.o,last.c)-last.l,upper=last.h-Math.max(last.o,last.c);
+    const bullish=move.side==="ALCISTA";
+    const wick=bullish?last.c>last.o&&lower>=Math.max(1.5*body,.4*range)&&upper<=.35*range:
+      last.c<last.o&&upper>=Math.max(1.5*body,.4*range)&&lower<=.35*range;
+    const engulf=bullish?prev.c<prev.o&&last.c>last.o&&last.o<=prev.c+avgRange*.1&&last.c>=prev.o-avgRange*.1&&body>=Math.abs(prev.o-prev.c)*.85:
+      prev.c>prev.o&&last.c<last.o&&last.o>=prev.c-avgRange*.1&&last.c<=prev.o+avgRange*.1&&body>=Math.abs(prev.o-prev.c)*.85;
+    if(!wick&&!engulf)continue;
+    const tolerance=Math.max(spot*.0002,avgRange*.35);
+    for(const ratio of [.382,.5,.618]){
+      const level=bullish?move.top-width*ratio:move.bottom+width*ratio;
+      const touched=bullish?Math.abs(last.l-level)<=tolerance&&last.c>level:
+        Math.abs(last.h-level)<=tolerance&&last.c<level;
+      if(!touched)continue;
+      const invalidation=bullish?move.bottom:move.top;
+      return {direction:move.side,ratio,level,invalidation,pattern:wick?"rechazo de mecha":"envolvente",
+        reason:`${move.side.toLowerCase()}: retroceso ${(ratio*100).toFixed(1)}% en ${money(level)} con vela ${wick?"de rechazo":"envolvente"}; extremo estructural ${money(invalidation)}.`};
+    }
+  }
+  return null;
+}
+function chartStructure(candles,basis){
+  const bars=Array.isArray(candles)?candles.filter(b=>[b.o,b.h,b.l,b.c,b.t].every(Number.isFinite)):[];
+  if(bars.length<18)return null;
+  const n=bars.length,last=bars.at(-1);
+  const ranges=bars.slice(1).map((b,i)=>Math.max(b.h-b.l,Math.abs(b.h-bars[i].c),Math.abs(b.l-bars[i].c)));
+  const atr=ranges.slice(-14).reduce((a,b)=>a+b,0)/14;
+  if(!(atr>0))return null;
+  const velocity=(last.c-bars[n-4].c)/3,previous=(bars[n-4].c-bars[n-7].c)/3;
+  const acceleration=(velocity-previous)/atr;
+  const direction=velocity>atr*.04?"ALCISTA":velocity< -atr*.04?"BAJISTA":"LATERAL";
+  const phase=velocity*previous<0?"TRANSICIÓN":Math.abs(velocity)>Math.abs(previous)*1.15&&Math.abs(velocity-previous)>atr*.03?"ACELERANDO":
+    Math.abs(previous)>atr*.04&&Math.abs(velocity)<Math.abs(previous)*.8?"DESACELERANDO":"ESTABLE";
+  const highs=[],lows=[];
+  for(let i=2;i<n-2;i++){
+    if(bars.slice(i-2,i+3).every(b=>bars[i].h>=b.h))highs.push(bars[i].h);
+    if(bars.slice(i-2,i+3).every(b=>bars[i].l<=b.l))lows.push(bars[i].l);
+  }
+  const structure=highs.length>=2&&lows.length>=2?
+    highs.at(-1)>highs.at(-2)&&lows.at(-1)>lows.at(-2)?"MÁXIMOS Y MÍNIMOS CRECIENTES":
+      highs.at(-1)<highs.at(-2)&&lows.at(-1)<lows.at(-2)?"MÁXIMOS Y MÍNIMOS DECRECIENTES":"ESTRUCTURA MIXTA":"PIVOTES AÚN SIN CONFIRMAR";
+  const range=bars.slice(-7,-1),upper=Math.max(...range.map(b=>b.h)),lower=Math.min(...range.map(b=>b.l));
+  const breakout=last.c>upper?"RUPTURA ARRIBA":last.c<lower?"RUPTURA ABAJO":"DENTRO DEL RANGO RECIENTE";
+  return {basis,atr,velocity,acceleration,direction,phase,structure,breakout,
+    reason:`${basis}: ${phase.toLowerCase()} ${direction.toLowerCase()} · ${structure.toLowerCase()} · ${breakout.toLowerCase()} · ATR14 5m ${money(atr)} · velocidad ${(velocity/atr).toFixed(2)} ATR/vela. Desaceleración no implica reversión.`};
+}
+function analyzeCandles(candles,spot,symbol,opening){
+  const fail=reason=>({direction:"SIN CONFIRMAR",reason});
+  if(!indexMarketOpen())return fail("Mercado cerrado; sin señal de entrada actual.");
+  if(!Array.isArray(candles)||candles.length<8)return fail("Faltan velas completas de 5 minutos.");
+  const last=candles.at(-1),prior=candles.at(-2),prior2=candles.at(-3);
+  if(![last,prior,prior2].every(b=>b&&[b.o,b.h,b.l,b.c,b.t].every(Number.isFinite)))return fail("Velas incompletas.");
+  const age=Date.now()-(last.t+300000);
+  if(age<0||age>8*60000)return fail("La última vela está atrasada más de 8 minutos.");
+  if(Math.abs(spot-last.c)/spot>.004)return fail("El precio de la cadena difiere del cierre de la vela más de 0.4%.");
+  const volume=candles.slice(-7,-1).map(b=>b.v).filter(v=>Number.isFinite(v)&&v>0);
+  const relativeVolume=volume.length>=4&&last.v>0?last.v/(volume.reduce((a,b)=>a+b,0)/volume.length):null;
+  const recent=candles.slice(-8), totalVolume=recent.reduce((sum,b)=>sum+(b.v>0?b.v:0),0);
+  const rollingVwap=totalVolume>0?recent.reduce((sum,b)=>sum+((b.h+b.l+b.c)/3)*(b.v>0?b.v:0),0)/totalVolume:null;
+  const day=new Date(last.t).toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+  const sessionVwap=day===opening?.day?(symbol==="SPY"?opening.spyVwap:symbol==="QQQ"?opening.qqqVwap:null):null;
+  const vwap=Number.isFinite(sessionVwap)&&sessionVwap>0?sessionVwap:rollingVwap;
+  const vwapLabel=vwap?(vwap===sessionVwap?"VWAP sesión":"VWAP últimas 8 velas"):"promedio";
+  const average=recent.reduce((sum,b)=>sum+b.c,0)/recent.length;
+  const anchor=vwap??average;
+  const noise=spot*.00025;
+  const bullish=last.c>anchor+noise&&last.c>prior.c+noise&&
+    (last.c>prior.h||prior.c>prior2.c+noise||last.c>last.o&&prior.c<=prior.o);
+  const bearish=last.c<anchor-noise&&last.c<prior.c-noise&&
+    (last.c<prior.l||prior.c<prior2.c-noise||last.c<last.o&&prior.c>=prior.o);
+  const narrow=Math.max(last.h,prior.h,prior2.h)-Math.min(last.l,prior.l,prior2.l)<spot*.002;
+  const lateral=narrow&&Math.abs(last.c-prior2.c)<spot*.0008;
+  let direction=bullish?"ALCISTA":bearish?"BAJISTA":lateral?"LATERAL":"NEUTRAL";
+  // Volume informs quality but does not erase a fresh, price-confirmed move.
+  const reason=`Vela 5m ${new Date(last.t).toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}: cierre ${money(last.c)}, ${direction.toLowerCase()}, ${vwapLabel} ${money(anchor)}${relativeVolume?`, volumen ${relativeVolume.toFixed(1)}×`:"; volumen no publicado"}.`;
+  return {direction,reason,age,relativeVolume,lastClose:last.c,fib:fibonacciPullback(candles,spot),technical:chartStructure(candles,symbol)};
+}
+function recordPrice(symbol, price){
+  if(!(price>0))return;
+  const now=Date.now(), history=state.priceHistory[symbol]||[];
+  history.push({price,time:now});
+  state.priceHistory[symbol]=history.filter(point=>now-point.time<=20*60000);
+}
+function priceMomentum(symbol){
+  const history=state.priceHistory[symbol]||[], last=history.at(-1);
+  if(!last)return {direction:"SIN CONFIRMAR",detail:"Esperando dos precios recientes."};
+  const first=history.find(point=>last.time-point.time>=2*60000);
+  if(!first)return {direction:"SIN CONFIRMAR",detail:"Esperando al menos dos minutos de cambios en el precio."};
+  const change=(last.price-first.price)/first.price;
+  return {direction:change>=.0005?"ALCISTA":change<=-.0005?"BAJISTA":"NEUTRAL",
+    detail:`Precio observado en ${Math.round((last.time-first.time)/60000)} min: ${(change*100).toFixed(2)}%.`};
+}
+const $ = id => document.getElementById(id);
+const money = n => Number.isFinite(n) ? `$${n.toFixed(2)}` : "—";
+const pct = n => Number.isFinite(n) ? `${(n*100).toFixed(1)}%` : "—";
+const compact = n => {
+  if (!Number.isFinite(n)) return "—";
+  const a=Math.abs(n), s=n<0?"-":"";
+  if(a>=1e9)return s+(a/1e9).toFixed(2)+"B";
+  if(a>=1e6)return s+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3)return s+(a/1e3).toFixed(1)+"K";
+  return Math.round(n).toString();
+};
+
+function operationLegs(legs){
+  if(!Array.isArray(legs)||![2,4].includes(legs.length)||legs.some(leg=>
+    !Number.isFinite(leg?.row?.strike)||!["long","short"].includes(leg.role)||!["put","call"].includes(leg.side)))return [];
+  return [...legs].sort((a,b)=>a.row.strike-b.row.strike||
+    (a.side==="put"?-1:1)).map(leg=>({
+      text:`${leg.role==="long"?"Comprar":"Vender"} ${leg.side==="put"?"Put":"Call"} ${leg.row.strike.toFixed(2)}`,
+      side:leg.role==="long"?"buy":"sell"
+    }));
+}
+function renderOperationLegs(container,legs){
+  container.replaceChildren();
+  for(const leg of operationLegs(legs)){
+    const item=document.createElement("div");
+    item.className=`leg-item ${leg.side}`;
+    item.textContent=leg.text;
+    container.append(item);
+  }
+}
+
+function setStatus(text, kind=""){ const e=$("status"); e.textContent=text; e.className=`status ${kind}`; }
+
+function expiries(rows){
+  return [...new Map(rows.map(r=>[r.expiryKey,r.expiry])).entries()].sort((a,b)=>a[1]-b[1]);
+}
+
+function isThirdFriday(date){
+  return date.getDay()===5 && date.getDate()>=15 && date.getDate()<=21;
+}
+
+function expiryType(date){
+  if(isThirdFriday(date)) return "monthly";
+  if(date.getDay()===5) return "weekly";
+  return "daily";
+}
+
+function expiryTypeLabel(type){ return type==="monthly"?"MENSUAL":type==="weekly"?"SEMANAL":"DIARIO"; }
+function expiryFilterLabel(type){ return type==="monthly"?"mensuales":type==="weekly"?"semanales":type==="daily"?"diarias":"seleccionadas"; }
+
+function calendarDte(date,now=new Date()){
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(now);
+  const field=key=>Number(parts.find(x=>x.type===key)?.value);
+  const expiryDay=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate());
+  const today=Date.UTC(field("year"),field("month")-1,field("day"));
+  return Math.max(0,Math.round((expiryDay-today)/86400000));
+}
+function expiryDisplay(date){
+  return date.toLocaleDateString("es-PR",{day:"numeric",month:"short",year:"numeric"});
+}
+
+// The chain gives a calendar date. Use 4:00 p.m. New York time for its
+// settlement price, converting daylight saving time independently of the device.
+// Traditional AM-settled SPX monthlies remain excluded from same-day signals.
+function expiryCloseTime(date,symbol){
+  const guess=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),16);
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(guess));
+  const hour=Number(parts.find(x=>x.type==="hour")?.value);
+  const minute=Number(parts.find(x=>x.type==="minute")?.value);
+  return guess+((16-hour)*60-minute)*60000;
+}
+function timeToExpiryYears(date,symbol,now=Date.now()){
+  return Math.max(0,(expiryCloseTime(date,symbol)-now)/(365*86400000));
+}
+
+// Model the chance of a positive payoff at expiration; this is not a historical win rate.
+function estimatedProfitProbability(candidate,spot,iv,expiry,symbol){
+  if(!candidate?.quote||!(spot>0)||!(iv>0)||!Number.isFinite(iv)||!Array.isArray(candidate.legs)||
+    candidate.legs.some(leg=>!leg.row||!Number.isFinite(leg.row.strike)))return null;
+  const years=timeToExpiryYears(expiry,symbol);
+  const sigma=iv*Math.sqrt(years);
+  if(!(sigma>.001&&sigma<2))return null;
+  const initial=candidate.kind==="debit"?-candidate.quote.premium:candidate.quote.premium;
+  let probability=0,total=0;
+  for(let i=-240;i<=240;i++){
+    const z=i*.025,weight=normPdf(z)*.025;
+    const finish=spot*Math.exp(-.5*sigma*sigma+sigma*z);
+    const pnl=candidate.legs.reduce((sum,leg)=>{
+      const intrinsic=leg.side==="call"?Math.max(finish-leg.row.strike,0):Math.max(leg.row.strike-finish,0);
+      return sum+(leg.role==="long"?intrinsic:-intrinsic);
+    },initial);
+    if(pnl>0)probability+=weight;
+    total+=weight;
+  }
+  return {percent:Math.round(100*probability/total),iv};
+}
+
+function filteredExpiries(list, mode){
+  if(!list.length) return list;
+  if(["daily","weekly","monthly"].includes(mode)) return list.filter(([,date])=>expiryType(date)===mode);
+  return list;
+}
+
+function populateExpiry(preserveKey=""){
+  const all = expiries(state.rows);
+  const mode = $("expiryFilter")?.value || "all";
+  const shown = filteredExpiries(all,mode);
+  if(!shown.length){
+    $("expiry").innerHTML=`<option value="">No hay expiraciones ${expiryFilterLabel(mode)}</option>`;
+    return false;
+  }
+  $("expiry").innerHTML = shown.map(([key,date])=>{
+    const dte = calendarDte(date);
+    const label = `[${expiryTypeLabel(expiryType(date))}] ${date.toLocaleDateString("es-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})} · ${dte} DTE`;
+    return `<option value="${key}">${label}</option>`;
+  }).join("");
+  if(preserveKey && shown.some(([k])=>k===preserveKey)) $("expiry").value=preserveKey;
+  return true;
+}
+
+function selectedRows(){
+  const key=$("expiry").value;
+  return state.rows.filter(r=>r.expiryKey===key);
+}
+
+function nearestByDelta(rows, side, target){
+  const candidates = rows.filter(r => side==="put" ? Number.isFinite(r.putDelta) : Number.isFinite(r.callDelta));
+  return candidates.sort((a,b)=>{
+    const da=Math.abs(Math.abs(side==="put"?a.putDelta:a.callDelta)-target);
+    const db=Math.abs(Math.abs(side==="put"?b.putDelta:b.callDelta)-target);
+    return da-db;
+  })[0] || null;
+}
+
+function nearestOtmByDelta(rows,side,target,spot){
+  const otm=rows.filter(r=>
+    side==="put"
+      ? r.strike<spot&&Number.isFinite(r.putDelta)
+      : r.strike>spot&&Number.isFinite(r.callDelta)
+  );
+  return nearestByDelta(otm.length?otm:rows,side,target);
+}
+
+function nearestDebitLong(rows,side,spot,target){
+  const preferred=rows.filter(r=>
+    side==="put"
+      ? r.strike>=spot&&Number.isFinite(r.putDelta)
+      : r.strike<=spot&&Number.isFinite(r.callDelta)
+  );
+  return nearestByDelta(preferred.length?preferred:rows,side,target);
+}
+
+function zeroGamma(rows){
+  const sorted=[...rows].sort((a,b)=>a.strike-b.strike);
+  let cum=0, prev=null;
+  for(const r of sorted){
+    const next=cum+r.netGex;
+    if(prev && cum!==0 && next!==0 && Math.sign(cum)!==Math.sign(next)){
+      const ratio=Math.abs(cum)/(Math.abs(cum)+Math.abs(next));
+      return prev.strike+(r.strike-prev.strike)*ratio;
+    }
+    cum=next; prev=r;
+  }
+  // No sign change means there is no supported zero-gamma crossing.
+  return null;
+}
+
+function rowAtStrike(rows,strike){ return rows.find(r=>Math.abs(r.strike-strike)<0.001)||null; }
+function liquid(r,side){
+  if(!r) return false;
+  const bid=side==="call"?r.callBid:r.putBid, ask=side==="call"?r.callAsk:r.putAsk;
+  const oi=side==="call"?r.callOi:r.putOi;
+  const mid=(bid+ask)/2;
+  return bid>0 && ask>=bid && (oi>=1 || (side==="call"?r.callVolume:r.putVolume)>0) && (ask-bid)<=Math.max(.10,mid*.30);
+}
+function premiumForLeg(r,side){ return side==="call"?r?.callMid:r?.putMid; }
+function spreadQuote(rows,kind,shortRow,longRow){
+  if(!shortRow||!longRow) return null;
+  const side=kind.includes("call")?"call":"put";
+  const shortBid=side==="call"?shortRow.callBid:shortRow.putBid;
+  const longAsk=side==="call"?longRow.callAsk:longRow.putAsk;
+  if(!(shortBid>0&&longAsk>0))return null;
+  const credit=kind.includes("credit");
+  const width=Math.abs(shortRow.strike-longRow.strike);
+  const premium=credit?shortBid-longAsk:longAsk-shortBid;
+  if(!(width>0&&premium>0&&premium<width))return null;
+  const risk=credit?(width-premium)*100:premium*100;
+  return {premium,risk,width,liquid:liquid(shortRow,side)&&liquid(longRow,side)};
+}
+function movementVerification(rows,spot,net,zg,mp,em,candleSignal=state.candleSignal){
+  const scale=Math.max(em||spot*.01,1);
+  const callOi=rows.reduce((s,r)=>s+r.callOi,0), putOi=rows.reduce((s,r)=>s+r.putOi,0);
+  const pcr=putOi/Math.max(1,callOi);
+  const call25=nearestByDelta(rows,"call",.25), put25=nearestByDelta(rows,"put",.25);
+  const skew=(put25?.putIv||0)-(call25?.callIv||0);
+  const callWall=[...rows].sort((a,b)=>b.callOi-a.callOi)[0];
+  const putWall=[...rows].sort((a,b)=>b.putOi-a.putOi)[0];
+  const parts=[]; let score=0;
+  const add=(value,label)=>{score+=value;parts.push({value,label});};
+  if(Number.isFinite(zg))parts.push({value:0,label:`Zero Gamma estimado en ${money(zg)}; no confirma la dirección del precio.`});
+  if(Number.isFinite(mp)){
+    const m=(mp-spot)/scale;
+    if(Math.abs(m)>.25)parts.push({value:0,label:`Max Pain estimado en ${money(mp)}; no predice un giro intradía.`});
+  }
+  if(pcr>=1.15||pcr<=.85)parts.push({value:0,label:`Put/Call OI ${pcr.toFixed(2)}: concentración de posiciones, no dirección confirmada.`});
+  if(skew>.025)add(-Math.min(10,skew*160),"Skew de puts: mayor precio relativo de protección; señal contextual.");
+  else if(skew<-.025)add(Math.min(10,Math.abs(skew)*160),"Skew de calls: mayor precio relativo de calls; señal contextual.");
+  if(callWall&&putWall){
+    const resistance=(callWall.strike-spot)/scale, support=(spot-putWall.strike)/scale;
+    if(resistance>0&&support>0){
+      if(resistance<support*.65)add(-8,`OI de calls concentrado en ${money(callWall.strike)}; posible resistencia, no barrera garantizada.`);
+      else if(support<resistance*.65)add(8,`OI de puts concentrado en ${money(putWall.strike)}; posible soporte, no barrera garantizada.`);
+    }
+  }
+  const candle=candleSignal||{direction:"SIN CONFIRMAR",reason:"Esperando velas."};
+  const optionsDirection=score>=15?"ALCISTA":score<=-15?"BAJISTA":"NEUTRAL";
+  const baseDirection=candle.direction;
+  parts.push({value:0,label:`${candle.reason} Sesgo de opciones: ${optionsDirection.toLowerCase()}.`});
+  const aligned=parts.filter(p=>baseDirection==="ALCISTA"?p.value>0:baseDirection==="BAJISTA"?p.value<0:false).length;
+  const opposed=parts.filter(p=>baseDirection==="ALCISTA"?p.value<0:baseDirection==="BAJISTA"?p.value>0:false).length;
+  const gammaLabel=net>=0?"Balance gamma aproximado positivo; no conoce posiciones netas de dealers.":"Balance gamma aproximado negativo; no conoce posiciones netas de dealers.";
+  parts.unshift({value:0,label:gammaLabel});
+  const strength=Math.min(100,Math.round(Math.abs(score)));
+  const alignedDirection=optionsDirection==="NEUTRAL"||optionsDirection===baseDirection;
+  const boundedScore=baseDirection==="ALCISTA"?Math.max(20,Math.min(45,30+score*.35)):baseDirection==="BAJISTA"?Math.min(-20,Math.max(-45,-30+score*.35)):0;
+  return {direction:optionsDirection,score:boundedScore,strength:Math.abs(boundedScore),pcr,skew,aligned,opposed,totalOi:callOi+putOi,factors:parts.map(p=>p.label),confirmed:["ALCISTA","BAJISTA","LATERAL"].includes(baseDirection),priceDirection:baseDirection,candleReason:candle.reason};
+}
+function legDelta(row,side){
+  const value=side==="call"?row?.callDelta:row?.putDelta;
+  return Number.isFinite(value)?value:null;
+}
+function deltaText(row,side){
+  const value=legDelta(row,side);
+  return value===null?"Δ —":`Δ ${value.toFixed(2)}`;
+}
+function legMarketQuality(legs){
+  const valid=legs.filter(x=>x?.row);
+  if(!valid.length||valid.length!==legs.length)return {score:-35,minOi:0,totalVolume:0,spreadPct:9,liquid:false};
+  let minOi=Infinity,totalVolume=0,spreadSum=0,quoted=0,liquidCount=0;
+  for(const leg of valid){
+    const r=leg.row, side=leg.side;
+    const oi=side==="call"?r.callOi:r.putOi;
+    const volume=side==="call"?r.callVolume:r.putVolume;
+    const bid=side==="call"?r.callBid:r.putBid,ask=side==="call"?r.callAsk:r.putAsk;
+    minOi=Math.min(minOi,oi||0);totalVolume+=volume||0;
+    if(bid>0&&ask>=bid){spreadSum+=(ask-bid)/Math.max((ask+bid)/2,.01);quoted++;}
+    if(liquid(r,side))liquidCount++;
+  }
+  const spreadPct=quoted?spreadSum/quoted:9;
+  let score=0;
+  score+=minOi>=500?12:minOi>=100?9:minOi>=25?5:minOi>=10?2:-10;
+  score+=totalVolume>=500?9:totalVolume>=100?7:totalVolume>=20?4:totalVolume>0?1:-5;
+  score+=spreadPct<=.08?10:spreadPct<=.15?7:spreadPct<=.25?3:-10;
+  score+=liquidCount===valid.length?6:liquidCount>=Math.ceil(valid.length/2)?1:-6;
+  return {score,minOi,totalVolume,spreadPct,liquid:liquidCount===valid.length};
+}
+function thetaExposure(legs){
+  return legs.reduce((sum,leg)=>{
+    const theta=leg.side==="call"?leg.row?.callTheta:leg.row?.putTheta;
+    if(!Number.isFinite(theta))return sum;
+    return sum+(leg.role==="short"?-theta:theta);
+  },0);
+}
+function buildDecision(rows,spot,net,zg,mp,iv,em,creditTarget,debitTarget,context={symbol:state.symbol,candleSignal:state.candleSignal,trend:state.trendContext,opening:state.openingContext}){
+  const cfg=INSTRUMENTS[context.symbol]||INSTRUMENTS.SPY;
+  const trend=context.trend?.direction?context.trend:null;
+  const opening=context.opening?.direction?context.opening:null;
+  const put=nearestOtmByDelta(rows,"put",creditTarget,spot), call=nearestOtmByDelta(rows,"call",creditTarget,spot);
+  const putLong=put&&rowAtStrike(rows,put.strike-cfg.width);
+  const callLong=call&&rowAtStrike(rows,call.strike+cfg.width);
+  const pcs=spreadQuote(rows,"put-credit",put,putLong);
+  const ccs=spreadQuote(rows,"call-credit",call,callLong);
+  const callDebitLong=nearestDebitLong(rows,"call",spot,debitTarget);
+  const callDebitShort=callDebitLong&&rowAtStrike(rows,callDebitLong.strike+cfg.width);
+  const putDebitLong=nearestDebitLong(rows,"put",spot,debitTarget);
+  const putDebitShort=putDebitLong&&rowAtStrike(rows,putDebitLong.strike-cfg.width);
+  const cds=spreadQuote(rows,"call-debit",callDebitShort,callDebitLong);
+  const pds=spreadQuote(rows,"put-debit",putDebitShort,putDebitLong);
+  const movement=movementVerification(rows,spot,net,zg,mp,em,context.candleSignal);
+  let reasons=[...movement.factors];
+  if(context.candleSignal?.technical)reasons.push(context.candleSignal.technical.reason);
+  if(context.candleSignal?.proxy)reasons.push("Vela direccional de SPY usada como referencia del S&P 500; precio, strikes y cadena siguen siendo de XSP. Reduce la calidad de señal.");
+  const nativeDeltaCount=rows.filter(r=>r.deltaSource==="cadena").length;
+  reasons.push(nativeDeltaCount
+    ? `Deltas de la cadena: crédito vende OTM cerca de ${creditTarget.toFixed(2)}; débito compra ATM/ITM cerca de ${debitTarget.toFixed(2)}.`
+    : `Delta estimado de respaldo: crédito vende OTM cerca de ${creditTarget.toFixed(2)}; débito compra ATM/ITM cerca de ${debitTarget.toFixed(2)}.`);
+  let name="ESTRATEGIA EN EVALUACIÓN",strikes="Sin strikes válidos",quote=null,confidence=45,selectedLegs=[],selectedCandidate=null;
+  const alerts=[];
+  const ivPct=Number.isFinite(iv)?iv*100:null;
+  const lowIv=ivPct!==null&&ivPct<12;
+  const highIv=ivPct!==null&&ivPct>=20;
+  const condorLegs=[{role:"short",side:"put",row:put},{role:"long",side:"put",row:putLong},{role:"short",side:"call",row:call},{role:"long",side:"call",row:callLong}];
+  const condorCredit=pcs&&ccs?pcs.premium+ccs.premium:null;
+  const condorWidth=pcs&&ccs?Math.max(pcs.width,ccs.width):null;
+  const condorQuote=Number.isFinite(condorCredit)?{premium:condorCredit,risk:Math.max(0,(condorWidth-condorCredit)*100),width:condorWidth,liquid:pcs.liquid&&ccs.liquid}:null;
+  const candidates=[
+    {name:"PUT CREDIT SPREAD",bias:"bull",kind:"credit",quote:pcs,legs:[{role:"short",side:"put",row:put},{role:"long",side:"put",row:putLong}],strikes:put&&putLong?`${put.strike}/${putLong.strike} P (${deltaText(put,"put")} corta)`:"Sin strikes válidos"},
+    {name:"CALL DEBIT SPREAD",bias:"bull",kind:"debit",quote:cds,legs:[{role:"long",side:"call",row:callDebitLong},{role:"short",side:"call",row:callDebitShort}],strikes:callDebitLong&&callDebitShort?`${callDebitLong.strike}/${callDebitShort.strike} C (${deltaText(callDebitLong,"call")} larga)`:"Sin strikes válidos"},
+    {name:"CALL CREDIT SPREAD",bias:"bear",kind:"credit",quote:ccs,legs:[{role:"short",side:"call",row:call},{role:"long",side:"call",row:callLong}],strikes:call&&callLong?`${call.strike}/${callLong.strike} C (${deltaText(call,"call")} corta)`:"Sin strikes válidos"},
+    {name:"PUT DEBIT SPREAD",bias:"bear",kind:"debit",quote:pds,legs:[{role:"long",side:"put",row:putDebitLong},{role:"short",side:"put",row:putDebitShort}],strikes:putDebitLong&&putDebitShort?`${putDebitLong.strike}/${putDebitShort.strike} P (${deltaText(putDebitLong,"put")} larga)`:"Sin strikes válidos"},
+    {name:"IRON CONDOR",bias:"neutral",kind:"condor",quote:condorQuote,legs:condorLegs,strikes:put&&putLong&&call&&callLong?`${put.strike}/${putLong.strike} P (${deltaText(put,"put")} corta) · ${call.strike}/${callLong.strike} C (${deltaText(call,"call")} corta)`:"Sin strikes válidos"}
+  ];
+  // A single target delta can land on an illiquid strike; compare nearby strikes.
+  for(const side of ["put","call"]){
+    const creditRows=rows.filter(r=>side==="put"?r.strike<spot:r.strike>spot)
+      .filter(r=>Number.isFinite(legDelta(r,side)))
+      .sort((a,b)=>Math.abs(Math.abs(legDelta(a,side))-creditTarget)-Math.abs(Math.abs(legDelta(b,side))-creditTarget)).slice(0,5);
+    const debitRows=rows.filter(r=>side==="put"?r.strike>=spot:r.strike<=spot)
+      .filter(r=>Number.isFinite(legDelta(r,side)))
+      .sort((a,b)=>Math.abs(Math.abs(legDelta(a,side))-debitTarget)-Math.abs(Math.abs(legDelta(b,side))-debitTarget)).slice(0,5);
+    for(const short of creditRows){
+      const long=rowAtStrike(rows,short.strike+(side==="call"?cfg.width:-cfg.width));
+      if(!long)continue;
+      const q=spreadQuote(rows,`${side}-credit`,short,long);
+      candidates.push({name:side==="put"?"PUT CREDIT SPREAD":"CALL CREDIT SPREAD",bias:side==="put"?"bull":"bear",kind:"credit",quote:q,
+        legs:[{role:"short",side,row:short},{role:"long",side,row:long}],strikes:`${short.strike}/${long.strike} ${side==="put"?"P":"C"} (${deltaText(short,side)} corta)`});
+    }
+    for(const long of debitRows){
+      const short=rowAtStrike(rows,long.strike+(side==="call"?cfg.width:-cfg.width));
+      if(!short)continue;
+      const q=spreadQuote(rows,`${side}-debit`,short,long);
+      candidates.push({name:side==="put"?"PUT DEBIT SPREAD":"CALL DEBIT SPREAD",bias:side==="call"?"bull":"bear",kind:"debit",quote:q,
+        legs:[{role:"long",side,row:long},{role:"short",side,row:short}],strikes:`${long.strike}/${short.strike} ${side==="put"?"P":"C"} (${deltaText(long,side)} larga)`});
+    }
+  }
+  const otmPuts=rows.filter(r=>r.strike<spot&&Number.isFinite(r.putDelta)&&Math.abs(r.putDelta)<=creditTarget+.07)
+    .sort((a,b)=>Math.abs(Math.abs(a.putDelta)-creditTarget)-Math.abs(Math.abs(b.putDelta)-creditTarget)).slice(0,8);
+  const otmCalls=rows.filter(r=>r.strike>spot&&Number.isFinite(r.callDelta)&&Math.abs(r.callDelta)<=creditTarget+.07)
+    .sort((a,b)=>Math.abs(Math.abs(a.callDelta)-creditTarget)-Math.abs(Math.abs(b.callDelta)-creditTarget)).slice(0,8);
+  for(const wing of [cfg.width,cfg.width*2])for(const ps of otmPuts)for(const cs of otmCalls){
+    const pl=rowAtStrike(rows,ps.strike-wing),cl=rowAtStrike(rows,cs.strike+wing);
+    if(!pl||!cl)continue;
+    const pq=spreadQuote(rows,"put-credit",ps,pl),cq=spreadQuote(rows,"call-credit",cs,cl);
+    if(!pq||!cq)continue;
+    const premium=pq.premium+cq.premium;
+    if(!(premium>0&&premium<wing))continue;
+    const q={premium,risk:(wing-premium)*100,width:wing,liquid:pq.liquid&&cq.liquid};
+    candidates.push({name:"IRON CONDOR",bias:"neutral",kind:"condor",quote:q,
+      legs:[{role:"short",side:"put",row:ps},{role:"long",side:"put",row:pl},{role:"short",side:"call",row:cs},{role:"long",side:"call",row:cl}],
+      strikes:`${ps.strike}/${pl.strike} P (${deltaText(ps,"put")} corta) · ${cs.strike}/${cl.strike} C (${deltaText(cs,"call")} corta)`});
+  }
+  for(const body of [...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot)).slice(0,3)){
+    for(const wing of [cfg.width,cfg.width*2]){
+      const pl=rowAtStrike(rows,body.strike-wing),cl=rowAtStrike(rows,body.strike+wing);
+      if(!pl||!cl)continue;
+      const premium=body.putBid+body.callBid-pl.putAsk-cl.callAsk;
+      if(!(premium>0&&premium<wing))continue;
+      candidates.push({name:"IRON BUTTERFLY",bias:"neutral",kind:"butterfly",
+        quote:{premium,risk:(wing-premium)*100,width:wing,
+          liquid:liquid(body,"put")&&liquid(body,"call")&&liquid(pl,"put")&&liquid(cl,"call")},
+        legs:[{role:"short",side:"put",row:body},{role:"long",side:"put",row:pl},
+          {role:"short",side:"call",row:body},{role:"long",side:"call",row:cl}],
+        strikes:`${body.strike-wing}/${body.strike}/${body.strike+wing} P/C (cortas en ${body.strike})`});
+    }
+  }
+  // Broken wings have unequal widths. Risk is calculated on the wider side.
+  for(const ps of otmPuts)for(const cs of otmCalls){
+    for(const [putWing,callWing] of [[cfg.width,cfg.width*2],[cfg.width*2,cfg.width]]){
+      const pl=rowAtStrike(rows,ps.strike-putWing),cl=rowAtStrike(rows,cs.strike+callWing);
+      if(!pl||!cl)continue;
+      const pq=spreadQuote(rows,"put-credit",ps,pl),cq=spreadQuote(rows,"call-credit",cs,cl);
+      if(!pq||!cq)continue;
+      const premium=pq.premium+cq.premium,width=Math.max(putWing,callWing);
+      if(!(premium>0&&premium<Math.min(putWing,callWing)))continue;
+      const bias=putWing<callWing?"bull":"bear";
+      candidates.push({name:"BROKEN WING IRON CONDOR",bias,kind:"brokenCondor",
+        quote:{premium,risk:(width-premium)*100,width,liquid:pq.liquid&&cq.liquid,
+          putRisk:(putWing-premium)*100,callRisk:(callWing-premium)*100},
+        legs:[{role:"short",side:"put",row:ps},{role:"long",side:"put",row:pl},
+          {role:"short",side:"call",row:cs},{role:"long",side:"call",row:cl}],
+        strikes:`${ps.strike}/${pl.strike} P · ${cs.strike}/${cl.strike} C (alas ${putWing}/${callWing})`});
+    }
+  }
+  for(const body of [...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot)).slice(0,5)){
+    for(const [putWing,callWing] of [[cfg.width,cfg.width*2],[cfg.width*2,cfg.width]]){
+      const pl=rowAtStrike(rows,body.strike-putWing),cl=rowAtStrike(rows,body.strike+callWing);
+      if(!pl||!cl)continue;
+      const premium=body.putBid+body.callBid-pl.putAsk-cl.callAsk,width=Math.max(putWing,callWing);
+      if(!(premium>0&&premium<width))continue;
+      const bias=body.strike>spot?"bull":"bear";
+      candidates.push({name:"BROKEN WING BUTTERFLY",bias,kind:"brokenButterfly",
+        quote:{premium,risk:(width-premium)*100,width,
+          liquid:liquid(body,"put")&&liquid(body,"call")&&liquid(pl,"put")&&liquid(cl,"call"),
+          putRisk:(putWing-premium)*100,callRisk:(callWing-premium)*100},
+        legs:[{role:"short",side:"put",row:body},{role:"long",side:"put",row:pl},
+          {role:"short",side:"call",row:body},{role:"long",side:"call",row:cl}],
+        strikes:`${body.strike-putWing}/${body.strike}/${body.strike+callWing} P/C (alas ${putWing}/${callWing})`});
+    }
+  }
+  const candidateDte=calendarDte(rows[0].expiry);
+  const riskLimit=candidateDte===0?100:CONFIG.maxRisk;
+  const signal=context.candleSignal?.direction||"SIN CONFIRMAR";
+  const marketMinutes=(()=>{const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());return Number(parts.find(p=>p.type==="hour")?.value)*60+Number(parts.find(p=>p.type==="minute")?.value);})();
+  const uncertainAmSettlement=context.symbol==="SPX"&&candidateDte===0&&expiryType(rows[0].expiry)==="monthly";
+  const openingReady=marketMinutes>=585;
+  const liveWindow=indexMarketOpen()&&openingReady&&candidateDte<=7&&timeToExpiryYears(rows[0].expiry,context.symbol)>0&&
+    (candidateDte!==0||marketMinutes<930)&&!uncertainAmSettlement;
+  for(const c of candidates){
+    const candidateRiskLimit=c.kind==="condor"||c.kind==="butterfly"||c.kind.startsWith("broken")?CONFIG.maxRisk:riskLimit;
+    c.market=legMarketQuality(c.legs);c.theta=thetaExposure(c.legs);
+    let score=45+c.market.score;
+    const technical=context.candleSignal?.technical;
+    if(technical&&c.bias!=="neutral"){
+      const side=c.bias==="bull"?"ALCISTA":"BAJISTA";
+      if(technical.direction===side&&technical.phase==="ACELERANDO")score+=2;
+      if(technical.direction===side&&technical.phase==="DESACELERANDO")score-=4;
+      if(technical.direction!==side&&technical.direction!=="LATERAL"&&technical.phase==="ACELERANDO")score-=6;
+    }
+    if(context.candleSignal?.proxy)score-=5;
+    if(!c.quote||c.strikes==="Sin strikes válidos")score=-99;
+    if(c.bias==="bull")score+=movement.score*.32;
+    if(c.bias==="bear")score-=movement.score*.32;
+    if(c.bias==="neutral")score+=18-movement.strength*.55;
+    if(movement.priceDirection!=="SIN CONFIRMAR"&&movement.priceDirection!=="NEUTRAL"&&c.bias!=="neutral"){
+      score+=c.bias===(movement.priceDirection==="ALCISTA"?"bull":"bear")?12:-12;
+    }
+    if(lowIv)score+=c.kind==="debit"?18:c.kind==="credit"?-13:-18;
+    else if(highIv)score+=c.kind==="credit"?16:c.kind==="condor"||c.kind.startsWith("broken")?13:-12;
+    else score+=c.kind==="credit"?5:c.kind==="condor"&&net>=0?9:3;
+    if(net<0&&c.bias!=="neutral")score+=3;
+    if(net>=0&&c.bias==="neutral")score+=4;
+    if(trend){
+      const side=c.bias==="bull"?"ALCISTA":c.bias==="bear"?"BAJISTA":"LATERAL";
+      if(c.bias==="neutral")score+=trend.range?9:trend.trendStrong?-8:0;
+      else{
+        if(trend.direction===side)score+=trend.trendStrong?7:3;
+        if(trend.fifteen?.direction===side)score+=trend.fifteen.rebound?9:4;
+        if(trend.direction===side&&trend.fifteen?.direction===side&&
+          context.candleSignal?.fib?.direction===side&&signal===side)score+=5;
+        if(side==="ALCISTA")score+=trend.rsi>=50&&trend.rsi<=70?3:trend.rsi<40?-6:0;
+        if(side==="BAJISTA")score+=trend.rsi>=30&&trend.rsi<=50?3:trend.rsi>60?-6:0;
+        if(trend.extreme)score-=5;
+      }
+    }
+    if(c.kind==="credit"||c.kind==="condor"||c.kind==="butterfly"||c.kind.startsWith("broken"))score+=c.theta>0?6:-3;
+    if(c.kind==="debit")score+=c.theta<0?2:-2;
+    if(c.quote?.risk>candidateRiskLimit)score-=18;
+    if(c.kind!=="debit"&&c.quote){const credit=c.quote.premium*100;if(credit>=30&&credit<=90)score+=5;else score-=5;}
+    const payoff=c.quote?(c.kind==="debit"?(c.quote.width*100-c.quote.risk)/c.quote.risk:(c.quote.premium*100)/c.quote.risk):0;
+    c.payoff=payoff;
+    const shortsSafe=c.kind==="debit"||c.kind==="butterfly"||c.kind==="brokenButterfly"||c.legs.filter(leg=>leg.role==="short").every(leg=>{
+      const distance=leg.side==="put"?spot-leg.row?.strike:leg.row?.strike-spot;
+      return Number.isFinite(distance)&&distance>0&&(!Number.isFinite(em)||distance>=em*.5);
+    });
+    const debitLong=c.kind!=="debit"?null:c.legs.find(leg=>leg.role==="long");
+    const longDelta=debitLong?Math.abs(legDelta(debitLong.row,debitLong.side)??0):null;
+    const deltaOk=longDelta===null||longDelta>=.45&&longDelta<=.85;
+    const condorShortPut=c.kind==="condor"||c.kind==="brokenCondor"?c.legs.find(leg=>leg.role==="short"&&leg.side==="put")?.row:null;
+    const condorShortCall=c.kind==="condor"||c.kind==="brokenCondor"?c.legs.find(leg=>leg.role==="short"&&leg.side==="call")?.row:null;
+    const butterflyBody=c.kind==="butterfly"?c.legs.find(leg=>leg.role==="short")?.row:null;
+    const brokenBody=c.kind==="brokenButterfly"?c.legs.find(leg=>leg.role==="short")?.row:null;
+    const projected=spot+(c.bias==="bull"?1:-1)*Math.min(em||0,cfg.width*1.5);
+    const directional=(signal==="ALCISTA"&&c.bias==="bull"||signal==="BAJISTA"&&c.bias==="bear");
+    const directionOk=c.kind==="brokenButterfly"?directional&&brokenBody&&Number.isFinite(em)&&
+      (c.bias==="bull"?brokenBody.strike>spot:brokenBody.strike<spot)&&
+      Math.abs(brokenBody.strike-spot)<=em*.7&&c.quote&&
+      Math.abs(projected-brokenBody.strike)+em*.25<c.quote.premium:
+      c.kind==="brokenCondor"?directional&&Number.isFinite(em)&&condorShortPut&&condorShortCall&&c.quote&&
+      (c.bias==="bull"?spot-condorShortPut.strike<condorShortCall.strike-spot:
+        condorShortCall.strike-spot<spot-condorShortPut.strike)&&
+      projected>condorShortPut.strike-c.quote.premium&&projected<condorShortCall.strike+c.quote.premium:
+      c.kind==="butterfly"?signal==="LATERAL"&&(movement.direction==="NEUTRAL"||trend?.range)&&
+      Number.isFinite(em)&&butterflyBody&&c.quote&&Math.abs(spot-butterflyBody.strike)+em*.5<=c.quote.premium:
+      c.bias==="neutral"?signal==="LATERAL"&&(movement.direction==="NEUTRAL"||trend?.range)&&
+      Number.isFinite(em)&&condorShortPut&&condorShortCall&&
+      spot-condorShortPut.strike>=em*.65&&condorShortCall.strike-spot>=em*.65:
+      (signal==="ALCISTA"&&c.bias==="bull"||signal==="BAJISTA"&&c.bias==="bear");
+    const quoteOk=c.quote&&c.quote.liquid&&c.quote.risk>0&&c.quote.risk<=candidateRiskLimit&&
+      c.market.spreadPct<=.25&&payoff>=(c.kind==="debit"?.60:.25);
+    c.blockers=[];
+    if(!liveWindow)c.blockers.push(uncertainAmSettlement?"SPX mensual 0DTE: liquidación AM/PM no identificada":"horario o vencimiento");
+    if(!directionOk)c.blockers.push("dirección de las velas");
+    if(!trend)c.blockers.push("contexto diario sin verificar; actualiza el Worker de Cloudflare");
+    if(!opening)c.blockers.push("rango de apertura SPY/QQQ sin verificar; actualiza el Worker");
+    if(opening){
+      const side=c.bias==="bull"?"ALCISTA":c.bias==="bear"?"BAJISTA":null;
+      if(side==="ALCISTA"&&opening.divergenceUp)c.blockers.push("QQQ rompe arriba mientras SPY está bajo VWAP");
+      if(side==="BAJISTA"&&opening.divergenceDown)c.blockers.push("QQQ rompe abajo mientras SPY está sobre VWAP");
+      if(side&&opening.direction!==side)score-=opening.direction==="DIVERGENCIA"?15:4;
+      if(side&&opening.direction===side)score+=7;
+      if(!side&&["ALCISTA","BAJISTA"].includes(opening.direction))c.blockers.push("ruptura convergente; no hay rango neutral");
+    }
+    if(trend){
+      const side=c.bias==="bull"?"ALCISTA":c.bias==="bear"?"BAJISTA":null;
+      if(side&&trend.trendStrong&&trend.direction!==side)c.blockers.push("tendencia diaria fuerte contraria");
+      if(side&&trend.fifteen?.direction!==side)
+        c.blockers.push(["NO DISPONIBLE","ATRASADA"].includes(trend.fifteen?.direction)?
+          "velas de 15 minutos no verificables":"movimiento de 15 minutos sin confirmar en la dirección propuesta");
+      if(!side&&trend.trendStrong&&trend.adx>30)c.blockers.push("ADX diario fuerte; rango poco favorable");
+    }
+    if(!(iv>0))c.blockers.push("IV de la cadena no disponible para estimar beneficio");
+    if(!quoteOk)c.blockers.push("cotización, liquidez, pérdida máxima o recompensa/riesgo");
+    if(!shortsSafe||!deltaOk)c.blockers.push("ubicación de strikes o delta");
+    if(rows.length<12)c.blockers.push("pocos strikes");
+    if(score<58)c.blockers.push("calidad de la estructura");
+    c.eligible=c.blockers.length===0;
+    c.score=c.eligible?Math.max(0,Math.min(95,score)):0;
+  }
+  candidates.sort((a,b)=>b.score-a.score||
+    ((lowIv?Number(b.kind==="debit")-Number(a.kind==="debit"):highIv?Number(b.kind==="credit")-Number(a.kind==="credit"):0))||
+    b.payoff-a.payoff);
+  const winner=candidates.find(c=>c.eligible&&c.score>0);
+  if(winner&&winner.score>0&&winner.quote){
+    name=winner.name;strikes=winner.strikes;quote=winner.quote;selectedLegs=winner.legs;
+    selectedCandidate=winner;
+    confidence=winner.score;
+    reasons.push(`Se compararon ${candidates.length} estructuras de ocho estrategias; ${name} obtuvo la mayor puntuación de calidad (${Math.round(winner.score)}/95). Esta puntuación no es una probabilidad de éxito.`);
+    if(winner.kind.startsWith("broken"))reasons.push(`Alas desiguales: riesgo extremo put ${money(Math.max(0,winner.quote.putRisk))}, riesgo extremo call ${money(Math.max(0,winner.quote.callRisk))}; pérdida máxima ${money(winner.quote.risk)} antes de comisiones.`);
+    reasons.push(`Liquidez de las patas: OI mínimo ${compact(winner.market.minOi)}, volumen total ${compact(winner.market.totalVolume)}, spread bid/ask promedio ${winner.market.spreadPct<9?(winner.market.spreadPct*100).toFixed(1)+"%":"no disponible"}.`);
+    reasons.push(`Theta neta estimada de la estructura: ${winner.theta>=0?"+":""}${winner.theta.toFixed(3)} por día.`);
+  }else{
+    name="ESPERAR · SIN ENTRADA CONFIRMADA";strikes="Esperar nueva vela / cotización";quote=null;selectedLegs=[];confidence=0;
+    reasons.push(context.candleSignal?.reason||"No hay velas verificables.");
+    reasons.push(!liveWindow?"Fuera de horario apto para esta expiración.":"Ninguna estructura reúne dirección de vela, liquidez, relación beneficio/riesgo y límite de pérdida.");
+    const closest=candidates.filter(c=>c.quote).sort((a,b)=>a.blockers.length-b.blockers.length)[0];
+    if(closest)reasons.push(`${closest.name} ${closest.strikes}: pendiente ${closest.blockers.join(", ")}.`);
+    else reasons.push("Ninguna pareja de strikes objetivo tiene dos precios bid/ask válidos; prueba otro vencimiento o delta.");
+  }
+  if(opening)reasons.push(`Apertura SPY/QQQ: ${opening.direction.toLowerCase()}. ${opening.details}`);
+  if(context.candleSignal?.fib)reasons.push(`Confirmación adicional 5m: ${context.candleSignal.fib.reason} Nivel contextual, sin garantía de rebote.`);
+  if(trend){
+    reasons.push(`Contexto diario ${trend.basis}: ${trend.direction.toLowerCase()}, ADX ${trend.adx.toFixed(1)}, +DI ${trend.plusDi.toFixed(1)}, -DI ${trend.minusDi.toFixed(1)}, RSI ${trend.rsi.toFixed(1)}. ${trend.fifteen.reason}`);
+    if(trend.extreme)reasons.push("RSI extremo: puede persistir en una tendencia; se reduce la calidad, sin asumir un giro automático.");
+  }else reasons.push(context.trend?.error?`Contexto diario sin verificar: ${context.trend.error}. Sin entrada hasta actualizar o recuperar el Worker.`:"Contexto diario no disponible; sin entrada hasta verificarlo.");
+  if(!movement.confirmed)reasons.push(`Sugerencia anticipatoria: sesgo de opciones ${movement.direction.toLowerCase()}; precio observado ${movement.priceDirection.toLowerCase()}. No se ha confirmado una entrada.`);
+
+  const creditStructure=name.includes("CREDIT")||name.includes("CONDOR")||name.includes("BUTTERFLY");
+  const shortPut=creditStructure?selectedLegs.find(x=>x.role==="short"&&x.side==="put")?.row:null;
+  const shortCall=creditStructure?selectedLegs.find(x=>x.role==="short"&&x.side==="call")?.row:null;
+  const debitLong=selectedLegs.find(x=>x.role==="long"&&name.includes("DEBIT"));
+  const checkShort=(row,side)=>{
+    if(!row)return;
+    const distance=side==="put"?spot-row.strike:row.strike-spot;
+    if(distance<=0) alerts.push({level:"red",text:`${side.toUpperCase()} corta ${row.strike}: está en el lado incorrecto del precio ${money(spot)}.`});
+    else if(Number.isFinite(em)&&distance<em*.5) alerts.push({level:"red",text:`${side.toUpperCase()} corta ${row.strike}: demasiado cerca del precio (${money(distance)}; menos de 0.5× expected move).`});
+    else if(Number.isFinite(em)&&distance<em) alerts.push({level:"yellow",text:`${side.toUpperCase()} corta ${row.strike}: permanece dentro del expected move de ±${money(em)}.`});
+  };
+  if(!name.includes("BUTTERFLY")){checkShort(shortPut,"put");checkShort(shortCall,"call");}
+  else if(shortPut&&shortCall){
+    const body=shortPut.strike, distance=Math.abs(spot-body), breakEven=quote.premium;
+    if(body!==shortCall.strike)alerts.push({level:"red",text:"Iron Butterfly inválido: las dos patas cortas deben compartir strike."});
+    else if(name==="IRON BUTTERFLY"&&distance+em*.5>breakEven)alerts.push({level:"red",text:"Iron Butterfly: el movimiento estimado rebasa la zona central de beneficio."});
+    else alerts.push({level:"yellow",text:`${name} centrado en ${money(body)}; puntos de equilibrio aproximados ${money(body-breakEven)} y ${money(body+breakEven)} al vencimiento.`});
+  }
+  if(name==="IRON CONDOR"&&shortPut&&shortCall){
+    const putDistance=spot-shortPut.strike,callDistance=shortCall.strike-spot;
+    const ratio=putDistance/Math.max(callDistance,.01);
+    if(!(shortPut.strike<spot&&spot<shortCall.strike)) alerts.push({level:"red",text:"Iron Condor inválido: el precio no está entre las dos patas cortas."});
+    else if(ratio<.60||ratio>1.67) alerts.push({level:"yellow",text:`Iron Condor asimétrico: distancias ${money(putDistance)} abajo y ${money(callDistance)} arriba.`});
+  }
+  if(debitLong?.row){
+    const actual=Math.abs(legDelta(debitLong.row,debitLong.side)??0);
+    const debitShort=selectedLegs.find(x=>x.role==="short"&&x.side===debitLong.side)?.row;
+    const validGeometry=debitLong.side==="call"
+      ? debitLong.row.strike<(debitShort?.strike??Infinity)
+      : debitLong.row.strike>(debitShort?.strike??-Infinity);
+    if(!debitShort||!validGeometry) alerts.push({level:"red",text:`Estructura ${debitLong.side.toUpperCase()} debit inválida: revisa el orden de la pata larga y la pata corta.`});
+    if(actual>=.85) alerts.push({level:"yellow",text:`Pata larga débito ${debitLong.row.strike}: delta ${actual.toFixed(2)} profundamente ITM; revisa costo y riesgo.`});
+    else if(actual<.45) alerts.push({level:"red",text:`Pata larga débito ${debitLong.row.strike}: delta ${actual.toFixed(2)} demasiado OTM para la configuración elegida.`});
+  }
+  if(!quote) alerts.push({level:"red",text:"No hay una estructura completa con cotizaciones válidas; no uses strikes parciales."});
+  else if(!alerts.length) alerts.push({level:"green",text:"Ubicación de strikes coherente con el precio y el expected move."});
+  const redAlerts=alerts.filter(a=>a.level==="red").length;
+  const yellowAlerts=alerts.filter(a=>a.level==="yellow").length;
+  confidence-=redAlerts*10+yellowAlerts*4;
+  if(movement.direction==="NEUTRAL" && !name.includes("CONDOR")&&!name.includes("BUTTERFLY")){
+    confidence-=10;
+    reasons.push(`Señal direccional débil: ${name} ganó por volatilidad, griegas y liquidez, pero conserva confianza reducida.`);
+  }
+  if(lowIv) reasons.push(`IV ATM baja (${ivPct.toFixed(1)}%): se favorecen spreads de débito y se evita vender prima barata.`);
+  else if(highIv) reasons.push(`IV ATM alta (${ivPct.toFixed(1)}%): se favorecen spreads de crédito cuando la dirección está confirmada.`);
+  else if(ivPct!==null) reasons.push(`IV ATM intermedia (${ivPct.toFixed(1)}%): débito o crédito se decide con gamma, dirección y calidad de la prima.`);
+  if(!quote||!quote.liquid){confidence-=20;reasons.push("Liquidez insuficiente o bid/ask demasiado amplio.");}
+  const isCredit=creditStructure;
+  if(quote&&isCredit){
+    const credit=quote.premium*100;
+    if(credit<30||credit>90){confidence-=8;reasons.push(`Crédito ${money(credit)} fuera del rango preferido de $30–$90.`);}
+  }
+  if(rows.length<12){confidence=Math.min(confidence,55);reasons.push("Calidad de datos insuficiente: menos de 12 strikes.");}
+  else if(movement.totalOi<1000)reasons.push("Open interest agregado bajo: revisar tamaño y ejecución; la liquidez se comprueba por bid/ask de cada pata.");
+  const dte=calendarDte(rows[0].expiry);
+  const isZeroDte=dte===0;
+  const selectedExpiryType=expiryType(rows[0].expiry);
+  const finalRiskLimit=name.includes("CONDOR")||name.includes("BUTTERFLY")?CONFIG.maxRisk:isZeroDte?100:CONFIG.maxRisk;
+  const confidenceLimit=isZeroDte?65:60;
+  const invalidDte=dte>7;
+  const exceedsRisk=quote&&quote.risk>finalRiskLimit;
+  if(exceedsRisk){confidence-=25;reasons.push(`Riesgo estimado supera el máximo preferido de $${finalRiskLimit}${isZeroDte?" para 0DTE":""}.`);}
+  if(isZeroDte){
+    confidence-=5;
+    reasons.push(`0DTE habilitado: calidad mínima 65/100 y riesgo máximo $${finalRiskLimit}${creditStructure?" para esta estructura de cuatro patas":""}.`);
+    if(movement.direction==="NEUTRAL"){confidence=Math.min(confidence,70);reasons.push("0DTE neutral o contradictorio: confianza reducida; requiere confirmación adicional.");}
+  }
+  if(!movement.confirmed){confidence=Math.min(confidence,45);reasons.push("Dirección sin confirmar: la puntuación no mide probabilidad de éxito ni predice el movimiento futuro.");}
+  if(movement.priceDirection!=="SIN CONFIRMAR"&&movement.priceDirection!=="NEUTRAL"&&winner?.bias!=="neutral"&&winner?.bias!==(movement.priceDirection==="ALCISTA"?"bull":"bear")){
+    confidence=Math.min(confidence,45);
+    reasons.push("La estrategia apuesta por un giro contrario al movimiento observado: sigue siendo una hipótesis, no una entrada confirmada.");
+  }
+  if(invalidDte){reasons.push(`Vencimiento de ${dte} DTE fuera del rango máximo permitido de 0–7 días.`);}
+  confidence=quote?Math.max(10,Math.min(90,confidence)):0;
+  const belowMinimum=confidence<confidenceLimit;
+  if(quote&&(belowMinimum||redAlerts>0)){
+    reasons.push(`Se descarta la entrada: calidad ${Math.round(confidence)}/100, mínimo ${confidenceLimit}/100, alertas críticas ${redAlerts}.`);
+    name="ESPERAR · ESTRUCTURA DESCARTADA";strikes="Esperar nueva cotización";quote=null;selectedLegs=[];confidence=0;
+  }
+  const probability=quote?estimatedProfitProbability(selectedCandidate,spot,iv,rows[0].expiry,context.symbol):null;
+  if(quote)reasons.push(probability?
+    `Beneficio al vencimiento: ${probability.percent}% estimado con IV ATM ${(iv*100).toFixed(1)}%, primas y payoff de las patas. La convergencia SPY/QQQ valida la entrada, pero no altera este porcentaje. No representa resultados observados.`:
+    "Probabilidad de beneficio no disponible: falta IV ATM válida de la cadena.");
+  return {name,strikes,quote,confidence,probability,expiry:rows[0].expiry,reasons,alerts,selectedLegs,pcr:movement.pcr,cfg,dte,type:selectedExpiryType,movement,candidates};
+}
+
+function evaluateDteChoices(allRows,spot,context,creditTarget,debitTarget){
+  const choices=[];
+  for(const [key,date] of expiries(allRows)){
+    const dte=calendarDte(date);
+    if(dte>7)continue;
+    const rows=allRows.filter(r=>r.expiryKey===key);
+    if(rows.length<12)continue;
+    const net=rows.reduce((sum,r)=>sum+r.netGex,0);
+    const atm=rows.reduce((best,r)=>!best||Math.abs(r.strike-spot)<Math.abs(best.strike-spot)?r:best,null);
+    const ivs=[atm?.callIv,atm?.putIv].filter(v=>Number.isFinite(v)&&v>0);
+    const iv=ivs.length?ivs.reduce((a,b)=>a+b,0)/ivs.length:null;
+    const years=timeToExpiryYears(date,context.symbol);
+    if(!(years>0))continue;
+    const em=iv?spot*iv*Math.sqrt(years):null;
+    const decision=buildDecision(rows,spot,net,zeroGamma(rows),maxPain(rows),iv,em,creditTarget,debitTarget,context);
+    if(!decision.quote||operationLegs(decision.selectedLegs).length!==decision.selectedLegs.length||!decision.selectedLegs.length)continue;
+    const winner=decision.candidates.find(c=>c.name===decision.name&&c.strikes===decision.strikes);
+    // buildDecision already applies 0DTE risk and signal checks; avoid penalizing it twice.
+    const score=decision.confidence-(context.symbol==="SPX"&&expiryType(date)==="monthly"?4:0);
+    choices.push({key,date,dte,decision,score,spread:winner?.market?.spreadPct??Infinity});
+  }
+  choices.sort((a,b)=>b.score-a.score||a.spread-b.spread||a.decision.quote.risk-b.decision.quote.risk||a.dte-b.dte);
+  return choices;
+}
+function bestDteSummary(choices,total,hasZero){
+  const zero=choices.find(x=>x.dte===0);
+  const zeroText=zero?`0DTE evaluado: ${zero.decision.name}, calidad ${Math.round(zero.decision.confidence)}/100.`:hasZero?"0DTE evaluado: ninguna estructura cumple los filtros actuales.":"0DTE no aparece en la cadena de hoy.";
+  const best=choices[0];
+  if(!best)return {title:"SIN DTE APTO",detail:`Se revisaron ${total} vencimientos de 0 a 7 DTE; ninguno pasó los filtros de cadena, movimiento, liquidez y riesgo. ${zeroText}`};
+  return {title:`${best.dte} DTE · ${expiryDisplay(best.date)} · ${best.decision.name}`,
+    detail:`Comparados ${total} vencimientos; calidad ${Math.round(best.decision.confidence)}/100, bid/ask prom. ${(best.spread*100).toFixed(1)}%, riesgo máx. ${money(best.decision.quote.risk)}. ${zeroText} Selección relativa, no tasa de éxito.`};
+}
+function render(){
+  const rows=selectedRows();
+  const spot=state.raw?.spot;
+  if(!rows.length || !spot) return;
+
+  const net=rows.reduce((s,r)=>s+r.netGex,0);
+  const callWall=[...rows].sort((a,b)=>b.callOi-a.callOi)[0];
+  const putWall=[...rows].sort((a,b)=>b.putOi-a.putOi)[0];
+  const mp=maxPain(rows);
+  const zg=zeroGamma(rows);
+  const atm=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))[0];
+  const atmIv=[atm?.callIv,atm?.putIv].filter(Number.isFinite);
+  const iv=atmIv.length?atmIv.reduce((a,b)=>a+b,0)/atmIv.length:null;
+  const years=timeToExpiryYears(rows[0].expiry,state.symbol);
+  const em=iv&&years>0?spot*iv*Math.sqrt(years):null;
+
+  $("spot").textContent=money(spot);
+  $("source").textContent=`${state.raw.source} · ${state.raw.fetchedAt.toLocaleTimeString()}`;
+  $("netGex").textContent=compact(net); $("netGex").className=`metric ${net>=0?"positive":"negative"}`;
+  $("callWall").textContent=money(callWall?.strike); $("callWallOi").textContent=`OI ${compact(callWall?.callOi)}`;
+  $("putWall").textContent=money(putWall?.strike); $("putWallOi").textContent=`OI ${compact(putWall?.putOi)}`;
+  $("maxPain").textContent=money(mp); $("zeroGamma").textContent=money(zg);
+  $("atmIv").textContent=pct(iv); $("expectedMove").textContent=em?`±${money(em)}`:"—";
+  const minutes=Math.max(0,Math.round((expiryCloseTime(rows[0].expiry,state.symbol)-Date.now())/60000));
+  $("expectedMoveBasis").textContent=minutes>0?`IV ATM · hasta las 4:00 p. m. ET (${Math.floor(minutes/60)} h ${minutes%60} min restantes)`:
+    "Vencimiento agotado; selecciona otro DTE.";
+
+  const creditTarget=Number($("delta").value);
+  const debitTarget=Number($("deltaDebit").value);
+  const decision=buildDecision(rows,spot,net,zg,mp,iv,em,creditTarget,debitTarget);
+  const choices=evaluateDteChoices(state.rows,spot,
+    {symbol:state.symbol,candleSignal:state.candleSignal,trend:state.trendContext,opening:state.openingContext},creditTarget,debitTarget);
+  const totalDtes=expiries(state.rows).filter(([,date])=>calendarDte(date)<=7).length;
+  const recommendation=bestDteSummary(choices,totalDtes,expiries(state.rows).some(([,date])=>calendarDte(date)===0));
+  $("bestDte").textContent=recommendation.title;
+  renderOperationLegs($("bestDteLegs"),choices[0]?.decision.selectedLegs);
+  $("bestDteReason").textContent=recommendation.detail;
+  $("useBestDte").hidden=!choices.length||$("expiry").value===choices[0].key;
+  $("useBestDte").dataset.key=choices[0]?.key||"";
+  $("strategy").textContent=`${decision.name}${decision.movement.confirmed?"":" · SIN CONFIRMACIÓN DE PRECIO"}`;
+  $("strategy").className=`strategy ${decision.confidence>=70?"positive":"gold"}`;
+  const activeTarget=decision.name.includes("DEBIT")?debitTarget:creditTarget;
+  $("strategyDetail").textContent=`${decision.cfg.family} · ${decision.cfg.settlement} · objetivo |Δ| ${activeTarget.toFixed(2)} · primas estimadas con bid/ask`;
+  $("regime").textContent=net>=0?"Balance gamma proxy positivo":"Balance gamma proxy negativo";
+  $("regimeDetail").textContent=net>=0
+    ?"Estimación a partir de OI y gamma; no revela posiciones reales de los creadores de mercado."
+    :"Estimación a partir de OI y gamma; no revela posiciones reales de los creadores de mercado.";
+
+  const trend=state.trendContext;
+  if(trend?.direction){
+    $("dailyTrend").textContent=`${trend.basis} · ${trend.direction}${trend.trendStrong?" · tendencia con fuerza":trend.range?" · ADX lateral":""}`;
+    $("dailyIndicators").textContent=`Cierre ${money(trend.dailyClose)} (${new Date(trend.dailyAsOf).toLocaleDateString("es-PR")}) · SMA20 ${money(trend.sma20)} · SMA50 ${money(trend.sma50)} · SMA200 ${money(trend.sma200)} · ADX14 ${trend.adx.toFixed(1)} · +DI ${trend.plusDi.toFixed(1)} / -DI ${trend.minusDi.toFixed(1)} · RSI14 ${trend.rsi.toFixed(1)}${trend.extreme?" · extremo no implica giro":""}.`;
+    $("intradayConfirmation").textContent=trend.fifteen.reason;
+  }else{
+    $("dailyTrend").textContent="Contexto diario no disponible";
+    $("dailyIndicators").textContent=trend?.error||"Worker sin histórico diario; análisis basado en 5m y opciones.";
+    $("intradayConfirmation").textContent="No se pudo evaluar el rebote de 15 minutos.";
+  }
+
+  const opening=state.openingContext;
+  $("openingSignal").textContent=opening?.direction||"Sin verificar";
+  $("openingDetails").textContent=opening?.details||opening?.error||"Faltan velas sincronizadas de SPY y QQQ.";
+  const fib=state.candleSignal?.fib;
+  const technical=state.candleSignal?.technical;
+  $("techSignal").textContent=technical?`${technical.phase} · ${technical.direction}`:"Sin estructura verificable";
+  $("techDetails").textContent=technical?.reason||"Faltan al menos 18 velas completas para medir ATR y cambio del impulso.";
+  $("fibSignal").textContent=fib?`Retroceso confirmado · ${fib.direction}`:"Sin patrón confirmado";
+  $("fibDetails").textContent=fib?`${fib.reason} Referencia de invalidación del subyacente, no orden de stop de opciones.`:
+    "No se identificó un impulso con pivotes y vela de rechazo verificables; las demás señales siguen evaluándose.";
+  const movement=decision.movement;
+  $("movementDirection").textContent=`Vela: ${movement.priceDirection} · Opciones: ${movement.direction}`;
+  $("movementDirection").className=movement.direction==="ALCISTA"?"positive":movement.direction==="BAJISTA"?"negative":"gold";
+  $("movementScore").textContent=`${movement.score>=0?"+":""}${Math.round(movement.score)} / 100`;
+  $("movementPcr").textContent=movement.pcr.toFixed(2);
+  $("movementSkew").textContent=`${movement.skew>=0?"+":""}${(movement.skew*100).toFixed(1)} pts`;
+  $("movementFactors").innerHTML=movement.factors.map(x=>`<li>${x}</li>`).join("");
+  const rankedStrategies=[...new Map(decision.candidates.map(c=>[c.name,decision.candidates.find(other=>other.name===c.name)])).values()];
+  $("strategyRanking").innerHTML=rankedStrategies.map((c,i)=>`<div class="rank-row ${i===0&&c.eligible?"winner":""}"><b>${i+1}. ${c.name}</b><span>${c.eligible?`Puntos ${Math.round(c.score)}/95`:"Sin entrada válida"}</span><span>OI mín. ${compact(c.market.minOi)}</span><span>Vol. ${compact(c.market.totalVolume)}</span></div>`).join("");
+
+  $("expiryBadge").innerHTML=`<span class="badge ${decision.type}">${expiryTypeLabel(decision.type)}</span><span class="badge">${decision.dte} DTE · vence ${expiryDisplay(decision.expiry)}</span>`;
+  $("planStrikes").textContent=decision.strikes;
+  renderOperationLegs($("planLegs"),decision.quote?decision.selectedLegs:null);
+  const premiumType=decision.name.includes("DEBIT")?"Débito":decision.name.includes("CREDIT")||decision.name.includes("CONDOR")||decision.name.includes("BUTTERFLY")?"Crédito":"Estimado";
+  $("planPremium").textContent=decision.quote?`${premiumType} ${money(decision.quote.premium*100)}`:"—";
+  $("planRisk").textContent=decision.quote?money(Math.max(0,decision.quote.risk)):"—";
+  const maxGain=decision.quote?(decision.name.includes("DEBIT")?decision.quote.width*100-decision.quote.risk:decision.quote.premium*100):null;
+  $("planRatio").textContent=decision.quote?.risk>0?`${(maxGain/decision.quote.risk).toFixed(2)} a 1 · antes de costos`:"—";
+  $("planGain").textContent=decision.quote?money(decision.name.includes("DEBIT")?decision.quote.width*100-decision.quote.risk:decision.quote.premium*100):"—";
+  $("planTrigger").textContent=decision.movement.candleReason;
+  $("planConfidence").textContent=decision.quote?`${Math.round(decision.confidence)}/100`:"—";
+  $("planProbability").textContent=decision.probability?`${decision.probability.percent}% estimado`:"—";
+  $("planProbabilityBasis").textContent=decision.probability?
+    `IV ATM ${(decision.probability.iv*100).toFixed(1)}% · strikes/primas · sin calibración histórica · antes de comisiones`:
+    decision.quote?"IV de la cadena insuficiente":"—";
+  const shortPut=decision.selectedLegs.find(x=>x.role==="short"&&x.side==="put")?.row;
+  const shortCall=decision.selectedLegs.find(x=>x.role==="short"&&x.side==="call")?.row;
+  const debitLong=decision.name.includes("DEBIT")?decision.selectedLegs.find(x=>x.role==="long")?.row:null;
+  const premium=decision.quote?.premium;
+  $("planBreakEven").textContent=!decision.quote?"—":debitLong?
+    money(debitLong.strike+(decision.name.includes("CALL")?premium:-premium)):
+    shortPut&&shortCall?`${money(shortPut.strike-premium)} / ${money(shortCall.strike+premium)}`:
+    shortPut?money(shortPut.strike-premium):shortCall?money(shortCall.strike+premium):"—";
+  const selected=decision.candidates.find(c=>c.name===decision.name&&c.strikes===decision.strikes);
+  $("planExecution").textContent=!decision.quote?"—":
+    `Bid/ask prom. ${selected?.market?.spreadPct<9?(selected.market.spreadPct*100).toFixed(1)+"%":"—"} · ${CBOE_SYMBOLS.has(state.symbol)?"Índice: efectivo, sin ejercicio temprano; verifica liquidación AM/PM.":"ETF: entrega de acciones y posible asignación anticipada."} Revisa o cierra antes del vencimiento.`;
+  $("confidenceBar").style.width=`${decision.confidence}%`;
+  $("strikeAlerts").innerHTML=decision.alerts.map(a=>`<div class="strike-alert ${a.level}">${a.level==="red"?"ALERTA":a.level==="yellow"?"PRECAUCIÓN":"VALIDACIÓN"}: ${a.text}</div>`).join("");
+  $("planReasons").innerHTML=decision.reasons.map(x=>`<li>${x}</li>`).join("");
+
+  const visible=[...rows].sort((a,b)=>Math.abs(a.strike-spot)-Math.abs(b.strike-spot))
+    .slice(0,CONFIG.maxRows).sort((a,b)=>a.strike-b.strike);
+  $("chainBody").innerHTML=visible.map(r=>`<tr class="${Math.abs(r.strike-spot)<1?"atm":""}">
+    <td>${r.strike.toFixed(2)}</td><td>${Number.isFinite(r.callDelta)?r.callDelta.toFixed(3):"—"}</td>
+    <td>${pct(r.callIv)}</td><td>${compact(r.callVolume)}</td><td>${compact(r.callOi)}</td><td>${Number.isFinite(r.callGamma)?r.callGamma.toFixed(4):"—"}</td><td>${Number.isFinite(r.callTheta)?r.callTheta.toFixed(3):"—"}</td>
+    <td>${Number.isFinite(r.putTheta)?r.putTheta.toFixed(3):"—"}</td><td>${Number.isFinite(r.putGamma)?r.putGamma.toFixed(4):"—"}</td><td>${compact(r.putOi)}</td><td>${compact(r.putVolume)}</td><td>${pct(r.putIv)}</td>
+    <td>${Number.isFinite(r.putDelta)?r.putDelta.toFixed(3):"—"}</td></tr>`).join("");
+}
+
+let loadSequence=0;
+async function load(preserveExpiry=false){
+  const sequence=++loadSequence,symbol=state.symbol,isIndex=Boolean(CBOE_SYMBOLS.has(symbol));
+  try{
+    setStatus(`Consultando ${symbol}…`);
+    $("refresh").disabled=true;
+    state.candleSignal=null;state.trendContext=null;state.openingContext=null;
+    $("spot").textContent="—";$("source").textContent="Esperando datos de "+symbol+"…";
+    const old=$("expiry").value;
+    let quote=null;
+    if(isIndex){
+      clearAnalysis();$("spot").textContent="—";$("source").textContent="Consultando precio independiente…";
+      try{
+        quote=await fetchIndexQuote(symbol);
+        if(sequence!==loadSequence)return;
+        $("spot").textContent=money(quote.price);
+        $("source").textContent=`${quote.source} · ${new Date(quote.timestamp).toLocaleString("es-PR")} · ${quote.delayed?"retrasado":"cotización"}`;
+        const age=Date.now()-Date.parse(quote.timestamp);
+        if(age< -2*60000||age>20*60000)throw new Error("Precio del índice atrasado más de 20 minutos");
+      }catch(error){if(sequence!==loadSequence)return;quote=null;$("source").textContent=`Precio no disponible: ${error.message}`;}
+      if(!quote){setStatus(`No hay precio verificable para ${symbol}; análisis desactivado.`,"err");return;}
+    }
+    let raw;
+    try{raw=await fetchChain(symbol)}catch(error){
+      if(sequence!==loadSequence)return;
+      if(isIndex){setStatus(`${symbol}: precio actualizado; cadena de opciones no disponible (${error.message}). Análisis desactivado.`,"err");return;}
+      throw error;
+    }
+    if(sequence!==loadSequence)return;
+    if(isIndex&&chainTooOld(raw.chainTimestamp,["SPX","XSP"].includes(symbol)?30:90)){
+      setStatus(`${symbol}: precio independiente actualizado; la cadena Cboe está atrasada (${raw.chainTimestamp||"sin hora"}). Análisis desactivado.`,"err");
+      return;
+    }
+    if(isIndex){raw.spot=quote.price;raw.source=`${quote.source} (precio) · Cboe (opciones ${raw.chainTimestamp||"sin hora"})`;}
+    if(!raw.spot) throw new Error("Nasdaq no devolvió el precio.");
+    const [candlesResult,trendResult,openingResult]=await Promise.allSettled([fetchCandles(symbol),fetchTrend(symbol),fetchOpening()]);
+    if(sequence!==loadSequence)return;
+    state.trendContext=trendResult.status==="fulfilled"?trendResult.value:{error:trendResult.reason.message};
+    state.openingContext=openingResult.status==="fulfilled"?openingResult.value:{error:openingResult.reason.message};
+    state.candleSignal=await verifiedCandleSignal(symbol,raw.spot,state.openingContext,candlesResult);
+    if(sequence!==loadSequence)return;
+    recordPrice(symbol,raw.spot);
+    state.raw=raw; state.rows=enrichRows(raw.rows,raw.spot);
+    if(!preserveExpiry)$("expiryFilter").value="all";
+    const available=populateExpiry(preserveExpiry ? old : "");
+    if(available){
+      if(!preserveExpiry){
+        const best=evaluateDteChoices(state.rows,raw.spot,
+          {symbol,candleSignal:state.candleSignal,trend:state.trendContext,opening:state.openingContext},
+          Number($("delta").value),Number($("deltaDebit").value))[0];
+        if(best){$("expiryFilter").value="all";populateExpiry(best.key);}
+      }
+      render();
+      const waiting=$("strategy").textContent.startsWith("ESPERAR");
+      setStatus(waiting?`${symbol}: datos cargados; no hay entrada que reúna los filtros actuales.`:`${symbol}: los filtros identifican una estructura; confirma primas y ejecución en tu corredor. Actualización en 1 minuto.`,waiting?"":"ok");
+    }else{
+      setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${symbol}.`,"err");
+    }
+  }catch(err){if(sequence===loadSequence){clearAnalysis();setStatus(`Error al consultar ${symbol}: ${err.message}. Comprueba la conexión con el Worker.`,"err");$("source").textContent="Sin datos de "+symbol;}}
+  finally{if(sequence===loadSequence)$("refresh").disabled=false;}
+}
+
+document.querySelectorAll(".symbol").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".symbol").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); state.symbol=btn.dataset.symbol; load(false);
+}));
+$("expiry").addEventListener("change",()=>{
+  const selected=state.rows.find(r=>r.expiryKey===$("expiry").value);
+  if(selected){
+    const type=expiryType(selected.expiry);
+    $("expiryFilter").value=type;
+    populateExpiry(selected.expiryKey);
+  }
+  render();
+});
+$("expiryFilter").addEventListener("change",()=>{
+  const available=populateExpiry("");
+  if(available)render();
+  else setStatus(`No hay expiraciones ${expiryFilterLabel($("expiryFilter").value)} disponibles para ${state.symbol}.`,"err");
+});
+$("delta").addEventListener("change",render);
+$("deltaDebit").addEventListener("change",render);
+$("refresh").addEventListener("click",()=>load(true));
+$("useBestDte").addEventListener("click",()=>{
+  const key=$("useBestDte").dataset.key;
+  if(!key)return;
+  $("expiryFilter").value="all";
+  populateExpiry(key);
+  render();
+});
+
+// Manual positions: standard 100-multiplier contracts, one contract per leg per unit.
+const POSITION_TEMPLATES={
+  putCredit:{name:"PUT CREDIT SPREAD",cash:"credit",bias:"bull",legs:[["long","put"],["short","put"]]},
+  callCredit:{name:"CALL CREDIT SPREAD",cash:"credit",bias:"bear",legs:[["short","call"],["long","call"]]},
+  callDebit:{name:"CALL DEBIT SPREAD",cash:"debit",bias:"bull",legs:[["long","call"],["short","call"]]},
+  putDebit:{name:"PUT DEBIT SPREAD",cash:"debit",bias:"bear",legs:[["short","put"],["long","put"]]},
+  condor:{name:"IRON CONDOR",cash:"credit",bias:"neutral",legs:[["long","put"],["short","put"],["short","call"],["long","call"]]},
+  butterfly:{name:"IRON BUTTERFLY",cash:"credit",bias:"neutral",legs:[["long","put"],["short","put"],["short","call"],["long","call"]]},
+  brokenCondor:{name:"BROKEN WING IRON CONDOR",cash:"credit",bias:"dynamic",legs:[["long","put"],["short","put"],["short","call"],["long","call"]]},
+  brokenButterfly:{name:"BROKEN WING BUTTERFLY (IRON)",cash:"credit",bias:"dynamic",legs:[["long","put"],["short","put"],["short","call"],["long","call"]]},
+  longCall:{name:"LONG CALL",cash:"debit",bias:"bull",legs:[["long","call"]]},
+  longPut:{name:"LONG PUT",cash:"debit",bias:"bear",legs:[["long","put"]]}
+};
+const POSITIONS_KEY="market-options-scanner.positions.v1";
+let savedPositions=[],positionStorageError="",editingPositionId=null,positionsBusy=false,positionsTimer=null;
+function positionDateKey(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;}
+function positionCash(value){return Number.isFinite(value)?Number(value.toFixed(2)):value;}
+function positionExpiryDate(value){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||""))return null;
+  const [y,m,d]=value.split("-").map(Number),date=new Date(y,m-1,d,16);
+  return date.getFullYear()===y&&date.getMonth()===m-1&&date.getDate()===d?date:null;
+}
+function positionDeadline(position){
+  const [hour,minute]=(position.closeTime||"16:00").split(":").map(Number);
+  return expiryCloseTime(positionExpiryDate(position.expiry),position.symbol)-(960-hour*60-minute)*60000;
+}
+function positionPayoff(position,spot){
+  const initial=(POSITION_TEMPLATES[position.strategy].cash==="credit"?1:-1)*position.entry;
+  return positionCash((position.legs.reduce((sum,leg)=>sum+(leg.role==="long"?1:-1)*
+    (leg.side==="call"?Math.max(spot-leg.strike,0):Math.max(leg.strike-spot,0)),initial))*100*position.quantity-position.fees);
+}
+function positionRisk(position){
+  if(position.legs.length===1){
+    const gain=position.legs[0].side==="call"?Infinity:(position.legs[0].strike-position.entry)*100*position.quantity-position.fees;
+    return {maxLoss:positionCash(position.entry*100*position.quantity+position.fees),maxGain:positionCash(gain)};
+  }
+  const strikes=position.legs.map(x=>x.strike),points=[0,...strikes,Math.max(...strikes)*2];
+  const outcomes=points.map(spot=>positionPayoff(position,spot));
+  return {maxLoss:Math.max(0,-Math.min(...outcomes)),maxGain:Math.max(...outcomes)};
+}
+function validatePosition(position,checkTargets=true){
+  const template=POSITION_TEMPLATES[position.strategy];
+  if(!["SPY","QQQ","XSP","SPX"].includes(position.symbol))throw new Error("Símbolo permitido: SPY, QQQ, XSP o SPX.");
+  if(!template||!positionExpiryDate(position.expiry))throw new Error("Selecciona estrategia y fecha válidas.");
+  if(!/^\d{2}:\d{2}$/.test(position.closeTime||""))throw new Error("Coloca la hora de cierre ET de tu contrato.");
+  const [ch,cm]=position.closeTime.split(":").map(Number);
+  if(cm>59||ch*60+cm<570||ch*60+cm>960)throw new Error("Hora de referencia ET fuera de 9:30 a. m.–4:00 p. m.");
+  if(!Number.isInteger(position.quantity)||position.quantity<1||position.quantity>10000)throw new Error("Cantidad de estructuras inválida.");
+  if(!(Number.isFinite(position.entry)&&position.entry>0&&Number.isFinite(position.fees)&&position.fees>=0))throw new Error("Coloca prima real de apertura y costos válidos.");
+  if(!Array.isArray(position.legs)||position.legs.length!==template.legs.length)throw new Error("Faltan patas.");
+  position.legs.forEach((leg,i)=>{
+    if(!(Number.isFinite(leg.strike)&&leg.strike>0))throw new Error(`Strike inválido en pata ${i+1}.`);
+    if(leg.role!==template.legs[i][0]||leg.side!==template.legs[i][1])throw new Error(`Pata ${i+1}: ${template.name} necesita ${template.legs[i][0]==="long"?"Buy":"Sell"} ${template.legs[i][1].toUpperCase()}. Cambia de estrategia si tu estructura es distinta.`);
+  });
+  const s=position.legs.map(x=>x.strike);
+  if(s.length===2&&!(s[0]<s[1]))throw new Error("Coloca el strike inferior en la primera pata y el superior en la segunda.");
+  if(s.length===4){
+    const butterfly=position.strategy.toLowerCase().includes("butterfly");
+    if(!(s[0]<s[1]&&s[2]<s[3]&&(butterfly?Math.abs(s[1]-s[2])<.0001:s[1]<s[2])))throw new Error(butterfly?"La Butterfly necesita Put y Call vendidos en el mismo strike central, con alas por fuera.":"Orden requerido: Buy Put inferior < Sell Put < Sell Call < Buy Call superior.");
+    const equal=Math.abs((s[1]-s[0])-(s[3]-s[2]))<.0001;
+    if(["condor","butterfly"].includes(position.strategy)&&!equal)throw new Error("Las alas deben ser iguales; para alas desiguales selecciona Broken Wing.");
+    if(position.strategy.startsWith("broken")&&equal)throw new Error("Broken Wing requiere alas de diferente ancho.");
+  }
+  const risk=positionRisk(position);
+  if(!(Number.isFinite(risk.maxLoss)&&risk.maxLoss>0&&risk.maxGain>0))throw new Error("Prima/costos incompatibles con una estructura de riesgo definido y beneficio posible.");
+  if(checkTargets){
+    if(!(position.target>0&&Number.isFinite(position.target)&&position.target<=risk.maxGain+.01))throw new Error("El objetivo debe ser positivo y no superar la ganancia máxima después de costos.");
+    if(!(position.lossLimit>0&&Number.isFinite(position.lossLimit)&&position.lossLimit<=risk.maxLoss+.01))throw new Error("El límite de pérdida debe ser positivo y no superar el riesgo máximo de la posición.");
+    if(!["close","expiry"].includes(position.policy)||!Number.isInteger(position.cutoff)||position.cutoff<15||position.cutoff>390)throw new Error("Revisa el plan y el aviso de vencimiento.");
+    for(const level of [position.lower,position.upper])if(level!==null&&!(Number.isFinite(level)&&level>0))throw new Error("Nivel de invalidación inválido.");
+    if(position.lower!==null&&position.upper!==null&&position.lower>=position.upper)throw new Error("La invalidación inferior debe estar debajo de la superior.");
+  }
+  return risk;
+}
+function readSavedPositions(){
+  try{
+    const raw=localStorage.getItem(POSITIONS_KEY);
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(data.version!==1||!Array.isArray(data.positions))throw new Error("Formato de guardado no reconocido.");
+    const ids=new Set();
+    for(const p of data.positions){
+      validatePosition(p,p.status!=="closed");
+      if(typeof p.id!=="string"||ids.has(p.id)||!["open","closed"].includes(p.status))throw new Error("Registro inválido.");
+      if(p.status==="closed"&&(!Number.isFinite(p.realizedPnl)||!Number.isFinite(p.exitPremium)))throw new Error("Cierre inválido.");
+      ids.add(p.id);
+    }
+    savedPositions=data.positions;
+  }catch(error){positionStorageError=`No se pudo leer el registro de este dispositivo: ${error.message}. El contenido existente no se sobrescribirá.`;}
+}
+function persistPositions(next){
+  if(positionStorageError)throw new Error(positionStorageError);
+  localStorage.setItem(POSITIONS_KEY,JSON.stringify({version:1,positions:next}));
+  savedPositions=next;
+}
+function readPositionForm(){
+  const optional=id=>$(id).value.trim()===""?null:Number($(id).value);
+  return {symbol:$("positionSymbol").value.trim().toUpperCase(),strategy:$("positionStrategy").value,
+    expiry:$("positionExpiry").value,closeTime:$("positionCloseTime").value,quantity:Number($("positionQuantity").value),entry:Number($("positionEntry").value),
+    fees:Number($("positionFees").value),target:Number($("positionTarget").value),lossLimit:Number($("positionLoss").value),
+    policy:$("positionPolicy").value,cutoff:Number($("positionCutoff").value),lower:optional("positionLower"),upper:optional("positionUpper"),
+    legs:[...$("positionLegInputs").querySelectorAll(".position-leg")].map((row,i)=>({
+      role:row.querySelector("select").value,side:POSITION_TEMPLATES[$("positionStrategy").value].legs[i][1],
+      strike:Number(row.querySelector("input").value)}))};
+}
+function createPositionLegInputs(legs){
+  const template=POSITION_TEMPLATES[$("positionStrategy").value];
+  $("positionLegInputs").innerHTML=template.legs.map(([role,side],i)=>`<div class="position-leg"><label>Pata ${i+1} · ${side.toUpperCase()}<select aria-label="Buy o Sell pata ${i+1}"><option value="long">Buy · Comprar</option><option value="short">Sell · Vender</option></select></label><label>Strike<input type="number" step="0.01" min="0.01" required aria-label="Strike pata ${i+1}"></label></div>`).join("");
+  [...$("positionLegInputs").children].forEach((row,i)=>{
+    row.querySelector("select").value=legs?.[i]?.role||template.legs[i][0];
+    row.querySelector("input").value=legs?.[i]?.strike??"";
+  });
+  $("positionEntryType").textContent=template.cash==="credit"?"Crédito recibido · por acción; ×100 por estructura":"Débito pagado · por acción; ×100 por estructura";
+}
+function updatePositionPreview(){
+  try{
+    const position=readPositionForm(),risk=validatePosition(position,false);
+    $("positionPreview").textContent=`Riesgo máximo ${money(risk.maxLoss)} · ganancia máxima ${Number.isFinite(risk.maxGain)?money(risk.maxGain):"sin límite teórico"} · incluye los costos totales introducidos. Contratos estándar: multiplicador 100; una opción por pata por estructura.`;
+  }catch(error){$("positionPreview").textContent=error.message;}
+}
+function resetPositionForm(){
+  editingPositionId=null;$("positionForm").reset();
+  $("positionExpiry").value=new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  createPositionLegInputs();$("positionSave").textContent="Guardar operación";$("positionCancel").hidden=true;
+  $("positionFormTitle").textContent="Registrar operación";updatePositionPreview();
+}
+function editPosition(id){
+  const p=savedPositions.find(x=>x.id===id&&x.status==="open");if(!p)return;
+  editingPositionId=id;
+  for(const [key,name] of Object.entries({symbol:"Symbol",strategy:"Strategy",expiry:"Expiry",closeTime:"CloseTime",quantity:"Quantity",entry:"Entry",fees:"Fees",target:"Target",lossLimit:"Loss",policy:"Policy",cutoff:"Cutoff",lower:"Lower",upper:"Upper"}))$("position"+name).value=p[key]??"";
+  createPositionLegInputs(p.legs);$("positionSave").textContent="Guardar cambios";$("positionCancel").hidden=false;
+  $("positionFormTitle").textContent="Editar operación";updatePositionPreview();$("positionForm").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function positionLiquidation(position,rows){
+  let cash=0,midCash=0,widest=0;
+  for(const leg of position.legs){
+    const row=rows.find(r=>positionDateKey(r.expiry)===position.expiry&&Math.abs(r.strike-leg.strike)<.0001);
+    if(!row)throw new Error(`No aparece ${leg.side.toUpperCase()} ${leg.strike} del ${position.expiry} en la cadena.`);
+    const bid=leg.side==="call"?row.callBid:row.putBid,ask=leg.side==="call"?row.callAsk:row.putAsk;
+    if(!Number.isFinite(bid)||!Number.isFinite(ask)||bid<0||ask<=0||ask<bid)throw new Error(`Sin bid/ask utilizable en ${leg.side.toUpperCase()} ${leg.strike}.`);
+    cash+=leg.role==="long"?bid:-ask;
+    midCash+=(leg.role==="long"?1:-1)*(bid+ask)/2;
+    widest=Math.max(widest,(ask-bid)/Math.max(.01,(ask+bid)/2));
+  }
+  const initial=(POSITION_TEMPLATES[position.strategy].cash==="credit"?1:-1)*position.entry;
+  if(!Number.isFinite((initial+cash)*100*position.quantity))throw new Error("Precios fuera de un rango numérico utilizable.");
+  return {pnl:positionCash((initial+cash)*100*position.quantity-position.fees),midPnl:positionCash((initial+midCash)*100*position.quantity-position.fees),
+    closePremium:POSITION_TEMPLATES[position.strategy].cash==="credit"?-cash:cash,wide:widest>.3};
+}
+function positionDecision(position,snapshot,signal,now=Date.now()){
+  const expiry=positionExpiryDate(position.expiry),minutes=(positionDeadline(position)-now)/60000;
+  const base={at:new Date(now).toISOString(),title:"DATOS INSUFICIENTES",tone:"gold",detail:"Sin cotización verificable para todas las patas."};
+  if(minutes<=0)return {...base,title:"VENCIMIENTO ALCANZADO",detail:"Confirma ejercicio, asignación o liquidación en el broker y registra el cierre real. La posición permanece guardada."};
+  if(position.symbol==="SPX"&&expiryType(expiry)==="monthly")return {...base,title:"VERIFICAR SERIE SPX AM/PM",detail:"La cadena actual no identifica la serie mensual con suficiente precisión. No se calcula el cierre con una serie que podría ser distinta."};
+  if(!indexMarketOpen())return {...base,title:"MERCADO CERRADO",detail:"Sin recomendación actual. La revisión se reanudará con la app visible y cotizaciones utilizables."};
+  if(!snapshot)return base;
+  const value=positionLiquidation(position,snapshot.raw.rows),result={...base,...value,spot:snapshot.spot,
+    source:`${snapshot.raw.source}${snapshot.raw.chainTimestamp?" · hora cadena "+snapshot.raw.chainTimestamp:" · hora de mercado de la cadena no informada"}`,timeVerified:snapshot.timeVerified,technical:signal?.technical?.reason||signal?.reason||"Movimiento sin verificar."};
+  const qualifier=snapshot.timeVerified?"Confirma ejecución de la estructura completa en el broker.":"Estimación orientativa: cotización retrasada o sin hora de mercado verificada; confirma bid/ask en el broker.";
+  const finish=(title,tone,detail)=>({...result,title,tone,detail:`${detail} ${qualifier}`});
+  if(value.pnl<=-position.lossLimit)return finish("LIMITAR PÉRDIDA · REVISAR CIERRE","negative",`Pérdida estimada ${money(-value.pnl)} frente a tu límite de ${money(position.lossLimit)}. Puede superar el límite entre revisiones.`);
+  if(value.pnl>=position.target)return finish("TOMAR GANANCIA · REVISAR CIERRE","positive",`Ganancia estimada ${money(value.pnl)} frente a tu objetivo de ${money(position.target)}.`);
+  if(position.lower!==null&&snapshot.spot<=position.lower||position.upper!==null&&snapshot.spot>=position.upper)return finish("INVALIDACIÓN · REVISAR SALIDA","negative","El precio cruzó uno de los niveles de invalidación que registraste.");
+  if(minutes<=position.cutoff)return finish("REVISAR CIERRE POR VENCIMIENTO","gold",`Quedan unos ${Math.max(0,Math.floor(minutes))} minutos hasta la referencia de cierre ET. ${["SPY","QQQ"].includes(position.symbol)?"ETF: existe riesgo de entrega de acciones y asignación; revisa el corte de tu broker.":"Índice: confirma liquidación y horario de tu serie."}`);
+  if(value.wide)return finish("LIQUIDEZ LIMITADA · VERIFICAR PRECIO","gold","Al menos una pata tiene un bid/ask amplio; el valor de cierre puede alejarse del punto medio.");
+  if(POSITION_TEMPLATES[position.strategy].cash==="credit"&&positionPayoff(position,snapshot.spot)<0)return finish("FUERA DE EQUILIBRIO · REVISAR RIESGO","gold","Al precio actual, el payoff al vencimiento sería negativo. No equivale al P&L actual; revisa el costo real de cierre y tus límites.");
+  const bias=POSITION_TEMPLATES[position.strategy].bias;
+  const opposite=bias==="bull"&&signal?.direction==="BAJISTA"||bias==="bear"&&signal?.direction==="ALCISTA";
+  if(opposite)return finish("MOVIMIENTO CONTRARIO · REVISAR SALIDA","gold","La vela reciente contradice la dirección de la posición; compara el cierre con tu límite y nivel de invalidación.");
+  if(bias==="neutral"&&signal?.technical?.phase==="ACELERANDO"&&signal.direction!=="LATERAL")return finish("RANGO EN RIESGO · REVISAR SALIDA","gold","El movimiento acelera fuera de un contexto lateral; revisa las patas cortas y el costo de cierre.");
+  if(value.pnl>0&&signal?.technical?.phase==="DESACELERANDO")return finish("PROTEGER GANANCIA · REVISAR CIERRE","gold","El impulso pierde velocidad. No confirma un giro, pero conviene revisar la ganancia disponible.");
+  const fresh=signal&&["ALCISTA","BAJISTA","LATERAL"].includes(signal.direction);
+  if(!fresh)return finish("MANTENER EN EVALUACIÓN · SIN SEÑAL COMPLETA","gold","No se alcanzaron tus límites, pero falta confirmación reciente del movimiento. No es una autorización para esperar al vencimiento.");
+  if(position.policy==="expiry"&&snapshot.timeVerified&&positionPayoff(position,snapshot.spot)>0)return finish("MANTENER POR AHORA · PLAN HACIA VENCIMIENTO","positive","Los límites no se han alcanzado y el payoff al precio actual sería positivo. Revaluar cada 2 minutos; esto no garantiza el resultado al vencimiento.");
+  return finish("MANTENER BAJO VIGILANCIA","gold",`No se alcanzaron tus límites de ganancia o pérdida. ${position.policy==="expiry"?"Aún no se valida mantener hacia vencimiento con las fuentes disponibles.":"Conserva el plan de cierre anticipado."}`);
+}
+function positionElement(tag,className,text){const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;return e;}
+function renderSavedPositions(){
+  $("positionsList").replaceChildren();$("closedPositionsList").replaceChildren();
+  const open=savedPositions.filter(p=>p.status==="open"),closed=savedPositions.filter(p=>p.status==="closed");
+  if(!open.length)$("positionsList").append(positionElement("p","note","Todavía no hay operaciones abiertas registradas."));
+  for(const p of [...open,...closed]){
+    const card=positionElement("article","card position-card"),template=POSITION_TEMPLATES[p.strategy],risk=positionRisk(p);
+    card.append(positionElement("h2","",`${p.symbol} · ${template.name}`));
+    card.append(positionElement("div","sub",`${p.quantity} estructura(s) · vence ${p.expiry}, referencia ${p.closeTime} ET · ${template.cash==="credit"?"crédito":"débito"} de apertura ${money(p.entry)} por acción`));
+    const legs=positionElement("div","leg-list");
+    p.legs.forEach(leg=>legs.append(positionElement("div",`leg-item ${leg.role==="long"?"buy":"sell"}`,`${leg.role==="long"?"Buy · Comprar":"Sell · Vender"} ${leg.side.toUpperCase()} ${leg.strike.toFixed(2)}`)));card.append(legs);
+    if(p.status==="closed"){
+      card.append(positionElement("div",`position-pnl ${p.realizedPnl>=0?"positive":"negative"}`,`${p.realizedPnl>=0?"+":"−"}${money(Math.abs(p.realizedPnl))} realizado`));
+      card.append(positionElement("p","position-notes",`Cierre real ${money(p.exitPremium)} por acción · registrado ${new Date(p.closedAt).toLocaleString("es-PR")}. Costos totales incluidos: ${money(p.actualFees??p.fees)}.`));
+      $("closedPositionsList").append(card);continue;
+    }
+    const review=p.lastReview;
+    const recent=review?.at&&Date.now()-Date.parse(review.at)>=0&&Date.now()-Date.parse(review.at)<=150000;
+    card.append(positionElement("div",`position-result ${recent?review.tone:"gold"}`,recent?review.title:"REVISIÓN PENDIENTE · SIN INDICACIÓN ACTUAL"));
+    const valuation=Number.isFinite(review?.pnl)?review:p.lastPricedReview;
+    if(Number.isFinite(valuation?.pnl)){
+      card.append(positionElement("div",`position-pnl ${valuation.pnl>=0?"positive":"negative"}`,`${valuation.pnl>=0?"+":"−"}${money(Math.abs(valuation.pnl))} estimado`));
+      card.append(positionElement("div","sub",`Cierre conservador: ${money(valuation.closePremium)} por acción · al punto medio: ${money(valuation.midPnl)} de P&L. Cotizado en revisión ${new Date(valuation.at).toLocaleString("es-PR")}; no es precio de ejecución garantizado ni necesariamente actual.`));
+    }
+    card.append(positionElement("p","position-notes",`${review?.detail||"Esperando cotizaciones de todas las patas."}\n${review?.technical||""}\nObjetivo ${money(p.target)} · pérdida límite ${money(p.lossLimit)} · relación objetivo/pérdida ${(p.target/p.lossLimit).toFixed(2)} a 1 · riesgo máximo ${money(risk.maxLoss)} · ganancia máxima ${Number.isFinite(risk.maxGain)?money(risk.maxGain):"sin límite teórico"}.\nÚltima revisión: ${review?.at?new Date(review.at).toLocaleString("es-PR"):"pendiente"}. ${review?.source||""}\nMejor / peor P&L observado en revisiones: ${money(p.bestObserved)} / ${money(p.worstObserved)}. No incluye movimientos entre muestras.`));
+    const actions=positionElement("div","position-actions"),edit=positionElement("button","","Editar registro"),close=positionElement("button","","Registrar cierre real");
+    edit.type=close.type="button";edit.addEventListener("click",()=>editPosition(p.id));
+    const closeForm=positionElement("form","position-close position-form");closeForm.hidden=true;
+    const label=positionElement("label","",`${template.cash==="credit"?"Débito pagado":"Crédito recibido"} real para cerrar (por acción)`),price=positionElement("input");price.type="number";price.min="0";price.step="0.01";price.required=true;label.append(price);
+    const feesLabel=positionElement("label","","Costos totales reales apertura + cierre ($)"),fees=positionElement("input");fees.type="number";fees.min="0";fees.step="0.01";fees.value=p.fees;fees.required=true;feesLabel.append(fees);
+    const submit=positionElement("button","refresh","Confirmar operación cerrada"),message=positionElement("div","note full");submit.type="submit";closeForm.append(label,feesLabel,submit,message);
+    close.addEventListener("click",()=>{closeForm.hidden=!closeForm.hidden;});
+    closeForm.addEventListener("submit",event=>{
+      event.preventDefault();
+      try{
+        const exit=Number(price.value),actualFees=Number(fees.value);
+        if(price.value===""||!Number.isFinite(exit)||exit<0||!Number.isFinite(actualFees)||actualFees<0)throw new Error("Coloca precio de cierre y costos reales válidos.");
+        const live=savedPositions.find(x=>x.id===p.id&&x.status==="open");if(!live)throw new Error("Esta operación ya no está abierta.");
+        const realized=positionCash((template.cash==="credit"?live.entry-exit:exit-live.entry)*100*live.quantity-actualFees);
+        persistPositions(savedPositions.map(x=>x.id===p.id?{...x,status:"closed",exitPremium:exit,actualFees,realizedPnl:realized,closedAt:new Date().toISOString()}:x));
+        if(editingPositionId===p.id)resetPositionForm();renderSavedPositions();
+      }catch(error){message.textContent=error.message;}
+    });
+    actions.append(edit,close);card.append(actions,closeForm);$("positionsList").append(card);
+  }
+  const total=closed.reduce((sum,p)=>sum+(Number.isFinite(p.realizedPnl)?p.realizedPnl:0),0);
+  $("positionsStatus").textContent=positionStorageError||`${open.length} abierta(s) · ${closed.length} cerrada(s) · resultado realizado registrado ${money(total)}. Guardado en este navegador y dispositivo.`;
+}
+async function fetchPositionSnapshot(symbol){
+  const index=["SPX","XSP"].includes(symbol);
+  const [raw,quote]=await Promise.all([fetchChain(symbol),index?fetchIndexQuote(symbol):Promise.resolve(null)]);
+  if(index){
+    const age=Date.now()-Date.parse(quote.timestamp);
+    if(age< -120000||age>20*60000)throw new Error("Precio del índice atrasado; no evaluar una salida con precio antiguo.");
+    if(chainTooOld(raw.chainTimestamp,30))throw new Error("Cadena del índice atrasada más de 30 minutos o sin hora verificable.");
+  }
+  const spot=index?quote.price:raw.spot;if(!(spot>0))throw new Error("Sin precio utilizable del subyacente.");
+  const [candles,opening]=await Promise.allSettled([fetchCandles(symbol),fetchOpening()]);
+  const signal=await verifiedCandleSignal(symbol,spot,opening.status==="fulfilled"?opening.value:null,candles);
+  const timeVerified=index&&!quote.delayed&&Date.now()-Date.parse(quote.timestamp)<=2*60000&&!chainTooOld(raw.chainTimestamp,2);
+  return {raw,spot,timeVerified,signal};
+}
+async function refreshPositions(){
+  if(positionsBusy||document.hidden||!savedPositions.some(p=>p.status==="open")||positionStorageError)return;
+  positionsBusy=true;$("positionsRefresh").disabled=true;
+  try{
+    const active=savedPositions.filter(p=>p.status==="open"),symbols=[...new Set(active.filter(p=>positionDecision(p,null,null).title==="DATOS INSUFICIENTES").map(p=>p.symbol))];
+    const results=await Promise.allSettled(symbols.map(symbol=>{
+      let timer;
+      return Promise.race([fetchPositionSnapshot(symbol),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("La consulta excedió 25 segundos; se reintentará.")),25000);})]).finally(()=>clearTimeout(timer));
+    }));
+    const snapshots=new Map(symbols.map((s,i)=>[s,results[i]]));
+    const next=savedPositions.map(p=>{
+      if(p.status!=="open")return p;
+      let review;
+      try{
+        const r=snapshots.get(p.symbol);
+        // Deadline and closed-market notices take precedence even when the feed fails.
+        review=positionDecision(p,null,null);
+        if(review.title==="DATOS INSUFICIENTES"){
+          if(r.status==="rejected")throw r.reason;
+          review=positionDecision(p,r.value,r.value.signal);
+        }
+      }catch(error){review={at:new Date().toISOString(),title:"DATOS INSUFICIENTES · CONFIRMAR EN BROKER",tone:"gold",detail:error.message};}
+      return {...p,lastReview:review,lastPricedReview:Number.isFinite(review.pnl)?review:p.lastPricedReview,bestObserved:Number.isFinite(review.pnl)?Math.max(p.bestObserved??-Infinity,review.pnl):p.bestObserved,
+        worstObserved:Number.isFinite(review.pnl)?Math.min(p.worstObserved??Infinity,review.pnl):p.worstObserved};
+    });
+    persistPositions(next);renderSavedPositions();
+  }catch(error){$("positionsStatus").textContent=`No se pudo completar o guardar la revisión: ${error.message}`;}
+  finally{positionsBusy=false;$("positionsRefresh").disabled=false;}
+}
+$("positionStrategy").innerHTML=Object.entries(POSITION_TEMPLATES).map(([key,t])=>`<option value="${key}">${t.name}</option>`).join("");
+readSavedPositions();resetPositionForm();renderSavedPositions();
+$("positionStrategy").addEventListener("change",()=>{createPositionLegInputs();updatePositionPreview();});
+$("positionForm").addEventListener("input",updatePositionPreview);
+$("positionForm").addEventListener("change",updatePositionPreview);
+$("positionCancel").addEventListener("click",resetPositionForm);
+$("positionsRefresh").addEventListener("click",refreshPositions);
+$("positionForm").addEventListener("submit",event=>{
+  event.preventDefault();
+  try{
+    const position=readPositionForm();validatePosition(position);
+    const existing=editingPositionId?savedPositions.find(p=>p.id===editingPositionId&&p.status==="open"):null;
+    if(editingPositionId&&!existing)throw new Error("La operación que editabas ya fue cerrada.");
+    const id=existing?.id||crypto.randomUUID();
+    const record={...position,id,status:"open",createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    persistPositions(existing?savedPositions.map(p=>p.id===id?record:p):[...savedPositions,record]);
+    resetPositionForm();$("positionFormMessage").textContent="Operación guardada. Permanecerá abierta hasta que registres su cierre real.";
+    renderSavedPositions();refreshPositions();
+  }catch(error){$("positionFormMessage").textContent=`No se guardó: ${error.message}`;}
+});
+positionsTimer=setInterval(refreshPositions,120000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshPositions();});
+
+const monitorSymbols=["SPY","QQQ","XSP","SPX"];
+let monitorActive=false,monitorTimer=null,monitorEpoch=0,monitorBusyEpoch=-1;
+$("monitorList").innerHTML=monitorSymbols.map(symbol=>`<article class="monitor-card" id="monitor-${symbol}">
+  <div class="monitor-head"><div><div class="monitor-symbol">${symbol}</div><div class="monitor-meta monitor-source">Esperando datos…</div></div><div class="monitor-price">—</div></div>
+  <div class="monitor-strategy">Preparando monitoreo…</div><div class="monitor-legs leg-list" aria-label="Strikes y patas de ${symbol}"></div><div class="monitor-meta monitor-detail">—</div>
+  <div class="monitor-meta monitor-time">—</div></article>`).join("");
+function monitorFields(symbol){
+  const card=$(`monitor-${symbol}`);
+  return {price:card.querySelector(".monitor-price"),source:card.querySelector(".monitor-source"),
+    strategy:card.querySelector(".monitor-strategy"),legs:card.querySelector(".monitor-legs"),detail:card.querySelector(".monitor-detail"),time:card.querySelector(".monitor-time")};
+}
+function monitorPending(symbol){
+  const ui=monitorFields(symbol);
+  ui.strategy.textContent="Consultando precio y opciones…";ui.strategy.className="monitor-strategy";
+  ui.legs.replaceChildren();
+  ui.detail.textContent="Esperando velas y cadena recientes.";
+}
+async function monitorSymbol(symbol,epoch){
+  const ui=monitorFields(symbol),index=CBOE_SYMBOLS.has(symbol);
+  let quote=null,raw=null;
+  try{
+    if(index){
+      quote=await fetchIndexQuote(symbol);
+      if(epoch!==monitorEpoch)return;
+      ui.price.textContent=money(quote.price);
+      ui.source.textContent=`${quote.source} · ${new Date(quote.timestamp).toLocaleTimeString("es-PR")}${quote.delayed?" · retrasado":""}`;
+      const quoteAge=Date.now()-Date.parse(quote.timestamp);
+      if(quoteAge< -2*60000||quoteAge>20*60000)throw new Error("Precio fuera de la ventana reciente de 20 minutos; señal suspendida.");
+    }
+    raw=await fetchChain(symbol);
+    if(epoch!==monitorEpoch)return;
+    if(!index){
+      if(!(raw.spot>0))throw new Error("Precio Nasdaq no disponible.");
+      ui.price.textContent=money(raw.spot);
+      ui.source.textContent=`${raw.source} · recibido ${raw.fetchedAt.toLocaleTimeString("es-PR")}`;
+    }else{
+      if(chainTooOld(raw.chainTimestamp,["SPX","XSP"].includes(symbol)?30:90))throw new Error(`Cadena Cboe atrasada (${raw.chainTimestamp||"sin hora"}).`);
+      raw.spot=quote.price;
+    }
+    const [candlesResult,trendResult,openingResult]=await Promise.allSettled([fetchCandles(symbol),fetchTrend(symbol),fetchOpening()]);
+    if(epoch!==monitorEpoch)return;
+    const trend=trendResult.status==="fulfilled"?trendResult.value:{error:trendResult.reason.message};
+    const opening=openingResult.status==="fulfilled"?openingResult.value:{error:openingResult.reason.message};
+    const candleSignal=await verifiedCandleSignal(symbol,raw.spot,opening,candlesResult);
+    if(epoch!==monitorEpoch)return;
+    if(!["ALCISTA","BAJISTA","LATERAL"].includes(candleSignal.direction))throw new Error(candleSignal.reason);
+    const all=enrichRows(raw.rows,raw.spot);
+    const choices=evaluateDteChoices(all,raw.spot,{symbol,candleSignal,trend,opening},
+      Number($("delta").value),Number($("deltaDebit").value));
+    const selected=choices[0]?.decision;
+    const summary=bestDteSummary(choices,expiries(all).filter(([,date])=>calendarDte(date)<=7).length,expiries(all).some(([,date])=>calendarDte(date)===0));
+    if(epoch!==monitorEpoch)return;
+    if(selected&&operationLegs(selected.selectedLegs).length===selected.selectedLegs.length&&selected.selectedLegs.length){
+      ui.strategy.textContent=selected.name;ui.strategy.className="monitor-strategy monitor-good";
+      renderOperationLegs(ui.legs,selected.selectedLegs);
+      ui.detail.textContent=`DTE preferido: ${selected.dte} (vence ${expiryDisplay(selected.expiry)}) · beneficio al vencimiento ${selected.probability?selected.probability.percent+"% teórico por IV/primas":"no estimable sin IV"} · riesgo máx. ${money(selected.quote.risk)} · calidad ${Math.round(selected.confidence)}/100`;
+    }else{
+      ui.strategy.textContent="SIN ENTRADA CONFIRMADA";ui.strategy.className="monitor-strategy monitor-error";
+      ui.legs.replaceChildren();
+      ui.detail.textContent=summary.detail;
+    }
+    ui.time.textContent=`Revisado ${new Date().toLocaleTimeString("es-PR")} · ${trend.direction?`diario ${trend.direction.toLowerCase()}, ADX ${trend.adx.toFixed(1)}; ${trend.fifteen.reason}`:"contexto diario sin verificar"} · apertura ${opening.direction||"sin verificar"} · ${candleSignal.reason}`;
+  }catch(error){
+    if(epoch!==monitorEpoch)return;
+    ui.strategy.textContent="SIN RECOMENDACIÓN ACTUAL";ui.strategy.className="monitor-strategy monitor-error";
+    ui.legs.replaceChildren();
+    ui.detail.textContent=error.message;
+    ui.time.textContent=`Último intento ${new Date().toLocaleTimeString("es-PR")}. Se reintentará automáticamente.`;
+  }
+}
+async function refreshMonitor(){
+  if(!monitorActive||document.hidden||monitorBusyEpoch===monitorEpoch)return;
+  const epoch=monitorEpoch;monitorBusyEpoch=epoch;
+  monitorSymbols.forEach(monitorPending);
+  $("monitorStatus").textContent="Actualizando los cuatro símbolos…";
+  try{await Promise.all(monitorSymbols.map(symbol=>monitorSymbol(symbol,epoch)));}
+  finally{
+    if(monitorBusyEpoch===epoch)monitorBusyEpoch=-1;
+    if(epoch===monitorEpoch)$("monitorStatus").textContent=`Última revisión ${new Date().toLocaleTimeString("es-PR")} · actualización automática cada 2 minutos mientras la pantalla esté abierta.`;
+  }
+}
+let activeScreen="analysis";
+function selectScreen(screen){
+  activeScreen=screen;
+  const monitor=screen==="monitor",positions=screen==="positions";
+  monitorActive=monitor;monitorEpoch++;
+  document.body.classList.toggle("monitor-mode",screen!=="analysis");
+  $("analysisScreen").hidden=screen!=="analysis";$("monitorScreen").hidden=!monitor;$("positionsScreen").hidden=!positions;
+  $("analysisTab").classList.toggle("active",screen==="analysis");$("monitorTab").classList.toggle("active",monitor);$("positionsTab").classList.toggle("active",positions);
+  clearInterval(state.timer);clearInterval(monitorTimer);
+  loadSequence++;
+  if(monitor){
+    monitorTimer=setInterval(refreshMonitor,120000);
+    refreshMonitor();
+  }else if(positions){
+    renderSavedPositions();refreshPositions();
+  }else{
+    state.timer=setInterval(()=>load(true),CONFIG.refreshMs);
+    load(true);
+  }
+}
+$("analysisTab").addEventListener("click",()=>{if(activeScreen!=="analysis")selectScreen("analysis");});
+$("monitorTab").addEventListener("click",()=>{if(activeScreen!=="monitor")selectScreen("monitor");});
+$("positionsTab").addEventListener("click",()=>{if(activeScreen!=="positions")selectScreen("positions");});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&monitorActive)refreshMonitor();});
+load(false);
+state.timer=setInterval(()=>load(true),CONFIG.refreshMs);
+refreshPositions();
+
+</script>
+</body></html>
