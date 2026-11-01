@@ -1738,7 +1738,36 @@ async function monitorSymbol(symbol,epoch){
     ui.time.textContent=`Último intento ${new Date().toLocaleTimeString("es-PR")}. Se reintentará automáticamente.`;
   }
 }
+// Linked monitoring consumes the server's actual mode and recommendations, not a second local scan.
+function renderBotMonitor(){
+ if(!globalThis.SCANNER_BOT_LINKED)return;
+ const view=globalThis.SCANNER_BOT_VIEW;monitorEpoch++;monitorBusyEpoch=-1;
+ const label=view?.mode?.short?'CORTO 0–5 días':'NORMAL 0–45 días';
+ const stale=!view?.mode||Date.now()-view.at>90000;
+ $("monitorStatus").textContent=stale?'Sin lectura reciente del bot; recomendaciones suspendidas.':`${label} · resultados del BOT · ${view.heartbeat?.status||'esperando ciclo'} · consulta ${new Date(view.at).toLocaleTimeString('es-PR')}`;
+ for(const symbol of monitorSymbols){const ui=monitorFields(symbol),report=view?.snapshots?.find(r=>r.symbol===symbol),signal=report?.signal;
+  ui.legs.replaceChildren();ui.activity.textContent='';ui.strategy.className='monitor-strategy';
+  if(stale){ui.strategy.textContent='ESPERANDO BOT';ui.detail.textContent='Actualiza el estado del bot para verificar modo y vencimientos.';continue;}
+  const same=(report?.mode?.revision||'initial')===(view.mode?.revision||'initial');
+  const valid=!!(same&&signal&&Date.now()<signal.validUntil&&(!view.mode.short||signal.dte<=5));
+  if(valid){ui.strategy.textContent=signal.name;ui.strategy.className='monitor-strategy monitor-good';
+   for(const l of signal.legs)ui.legs.append(positionElement('div','leg-item',`${l.role==='long'?'Comprar':'Vender'} ${l.side} ${l.strike}`));
+   ui.detail.textContent=`${label} · ${signal.dte} DTE · vence ${signal.expiry} · prima indicativa ${money(signal.premium*100)} · riesgo máx. ${money(signal.risk)} antes de costos.${signal.shortAnalysis?' Theta neto '+money(signal.shortAnalysis.thetaDaily)+'/día teórico; no ganancia asegurada.':''}`;
+  }else{ui.strategy.textContent='SIN ENTRADA CONFIRMADA';ui.detail.textContent=`${label} · ${!same?'Cambio de modo: esperando siguiente ciclo.':signal&&Date.now()>=signal.validUntil?'Señal caducada; esperando reevaluación.':report?.reason||'Esperando primera evaluación del servidor.'}`;}
+  ui.time.textContent=report?`Evaluación del bot: ${new Date(report.at).toLocaleString('es-PR')}. ${report.patterns?.reason||''}`:'Sin evaluación del símbolo.';
+ }
+}
+async function refreshBotMonitorPrices(){
+ const epoch=monitorEpoch;
+ await Promise.allSettled(monitorSymbols.map(async symbol=>{const ui=monitorFields(symbol),index=CBOE_SYMBOLS.has(symbol),q=index?await fetchIndexQuote(symbol):await fetchChain(symbol);if(epoch!==monitorEpoch)return;
+  const price=index?q.price:q.spot;if(!(price>0))return;ui.price.textContent=money(price);ui.source.textContent=index?`${q.source} · ${new Date(q.timestamp).toLocaleTimeString('es-PR')}${q.delayed?' · retrasado':''}`:`${q.source} · recibido ${q.fetchedAt.toLocaleTimeString('es-PR')}`;
+ }));
+}
 async function refreshMonitor(){
+ if(globalThis.SCANNER_BOT_LINKED){
+  if(!monitorActive||document.hidden)return;
+  await globalThis.SCANNER_REFRESH_BOT?.();renderBotMonitor();await refreshBotMonitorPrices();return;
+ }
   if(!monitorActive||document.hidden||monitorBusyEpoch===monitorEpoch)return;
   const epoch=monitorEpoch;monitorBusyEpoch=epoch;
   monitorSymbols.forEach(monitorPending);
@@ -2117,4 +2146,4 @@ load(false);
 state.timer=setInterval(()=>load(true),CONFIG.refreshMs);
 
 </script>
-<script src="bot-client.js"></script></body></html>
+<script src="bot-client.js?v=4.58-monitor1"></script></body></html>

@@ -5,6 +5,7 @@
  const save=()=>localStorage.setItem(STORE,JSON.stringify(prefs));
  $('botUrl').value=prefs.url||'';$('botSymbols').value=(prefs.symbols||['PFE','T','BAC','KO','CSCO','NDAQ','F']).join(',');
  if(prefs.url)globalThis.SCANNER_BOT_URL=prefs.url;
+ globalThis.SCANNER_BOT_LINKED=!!prefs.token;
  const watch=()=>[...new Set($('botSymbols').value.toUpperCase().split(/[ ,;]+/).filter(Boolean))];
  function base(){const u=new URL($('botUrl').value.trim()||prefs.url);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/')throw new Error('Usa solo la dirección HTTPS del Worker, sin rutas ni claves');return u.origin}
  async function api(path,body,enroll=false){const response=await fetch((prefs.url||base())+path,{method:body===undefined?'GET':'POST',headers:{...(body===undefined?{}:{'Content-Type':'application/json'}),...(enroll?{Authorization:'Bearer '+$('botKey').value.trim()}:prefs.token?{Authorization:'Bearer '+prefs.token}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000),cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data}
@@ -14,8 +15,9 @@
  async function status(){
   if(!prefs.token||busy)return;busy=true;
   try{const data=await api('/status');
-   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.58 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. Solo afecta sugerencias del BOT; el análisis local conserva 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
+   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.58 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
 
+   globalThis.SCANNER_BOT_LINKED=true;globalThis.SCANNER_BOT_VIEW={mode:data.mode,snapshots:data.snapshots||[],heartbeat:data.heartbeat,at:Date.now()};if(typeof renderBotMonitor==='function')renderBotMonitor();
    globalThis.SCANNER_RISK=data.risk||null;globalThis.SCANNER_BOT_URL=prefs.url;
    const hb=data.heartbeat,age=hb?Date.now()-hb.at:Infinity;
    say(hb?`${age>5*60000?'Servidor sin revisión reciente':'Alertas activadas'} · ${hb.status} · ${new Date(hb.at).toLocaleString('es-PR')}`:'Dispositivo activado; esperando primer ciclo programado.');
@@ -31,9 +33,9 @@
    if(r?.news){append(root,'h2','Noticias revisadas');append(root,'p',r.news.note,'sub');for(const n of r.news.items.slice(0,10)){const card=append(root,'article','','bot-item'),link=append(card,'a',n.title);try{const u=new URL(n.url);if(u.protocol==='https:'){link.href=u.href;link.target='_blank';link.rel='noopener noreferrer'}}catch{}append(card,'p',(n.category||'INFORMATIVA')+' · '+n.source+' · '+new Date(n.at).toLocaleString('es-PR'),'sub')}}
    // Re-render current analysis after receiving the shared risk gate.
    if(typeof render==='function'&&typeof state!=='undefined'&&state.rows.length)render();
-  }catch(e){$('botMode').disabled=true;globalThis.SCANNER_RISK=null;say('No se pudo consultar el bot: '+e.message+'. El análisis local sigue disponible; filtro de riesgo sin verificar.')}finally{busy=false}
+  }catch(e){globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();$('botMode').disabled=true;globalThis.SCANNER_RISK=null;say('No se pudo consultar el bot: '+e.message+'. El análisis local sigue disponible; filtro de riesgo sin verificar.')}finally{busy=false}
  }
- $('botMode').onclick=async()=>{if(modeBusy||!prefs.token||!botMode)return;modeBusy=true;$('botMode').disabled=true;try{const data=await api('/mode',{short:!botMode.short});botMode=data.mode;say('Modo guardado en el servidor; esperando siguiente ciclo.');globalThis.SCANNER_RISK=null;await status();}catch(e){say('No se confirmó el cambio de modo: '+e.message);}finally{modeBusy=false;$('botMode').disabled=!botMode;}};
+ $('botMode').onclick=async()=>{if(modeBusy||!prefs.token||!botMode)return;modeBusy=true;$('botMode').disabled=true;try{const data=await api('/mode',{short:!botMode.short});botMode=data.mode;say('Modo guardado en el servidor; esperando siguiente ciclo.');globalThis.SCANNER_RISK=null;globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();await status();}catch(e){say('No se confirmó el cambio de modo: '+e.message);}finally{modeBusy=false;$('botMode').disabled=!botMode;}};
  $('botSave').onclick=()=>{try{const url=base();if(prefs.url&&url!==prefs.url&&prefs.token)throw new Error('Desactiva las alertas antes de cambiar de servidor');prefs.url=url;save();say('Dirección guardada. Abre la app desde Inicio y pulsa Activar alertas.')}catch(e){say(e.message)}};
  $('botEnable').onclick=async()=>{
   const button=$('botEnable');button.disabled=true;
@@ -44,13 +46,14 @@
    const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Permiso no concedido. Revisa Ajustes → Notificaciones.');
    const reg=await serviceWorker(),config=await api('/config');
    let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:un64(config.publicKey)});
-   if(!prefs.token){if(!$('botKey').value.trim())throw new Error('Introduce la clave de activación creada para tu servidor (solo esta vez).');const result=await api('/subscribe',{subscription:sub.toJSON(),symbols:selected},true);prefs.token=result.token;prefs.id=result.id;}
+   if(!prefs.token){if(!$('botKey').value.trim())throw new Error('Introduce la clave de activación creada para tu servidor (solo esta vez).');const result=await api('/subscribe',{subscription:sub.toJSON(),symbols:selected},true);prefs.token=result.token;prefs.id=result.id;globalThis.SCANNER_BOT_LINKED=true;}
    prefs.symbols=selected;save();$('botKey').value='';$('botSetup').open=false;await status();
   }catch(e){say(e.message)}finally{button.disabled=false}
  };
  $('botTest').onclick=async()=>{try{if(!prefs.token)throw new Error('Activa primero las alertas');await api('/test',{});say('Prueba aceptada por el servicio push. Comprueba la notificación en el iPhone.')}catch(e){say(e.message)}};
- $('botDisable').onclick=async()=>{try{if(prefs.token)await api('/unsubscribe',{});const reg=await navigator.serviceWorker?.getRegistration('./'),sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();delete prefs.token;delete prefs.id;botMode=null;$('botMode').disabled=true;save();globalThis.SCANNER_RISK=null;say('Alertas desactivadas en este dispositivo.')}catch(e){say('No se confirmó la desactivación: '+e.message)}};
+ $('botDisable').onclick=async()=>{try{if(prefs.token)await api('/unsubscribe',{});const reg=await navigator.serviceWorker?.getRegistration('./'),sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();delete prefs.token;delete prefs.id;botMode=null;globalThis.SCANNER_BOT_LINKED=false;globalThis.SCANNER_BOT_VIEW=null;$('botMode').disabled=true;save();globalThis.SCANNER_RISK=null;say('Alertas desactivadas en este dispositivo.')}catch(e){say('No se confirmó la desactivación: '+e.message)}};
  $('botWatch').onclick=async()=>{try{const selected=watch();if(!prefs.token)throw new Error('Activa primero las alertas');await api('/watch',{symbols:selected});prefs.symbols=selected;save();say('Lista de vigilancia guardada en el bot');await status()}catch(e){say(e.message)}};
+ globalThis.SCANNER_REFRESH_BOT=status;
  if(prefs.token)status();else $('botSetup').open=true;
  setInterval(()=>{if(!document.hidden)status()},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)status()});
 })();
