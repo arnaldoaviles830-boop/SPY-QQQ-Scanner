@@ -15,7 +15,7 @@
  async function status(){
   if(!prefs.token||busy)return;busy=true;
   try{const data=await api('/status');
-   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.58 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
+   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.59 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
 
    globalThis.SCANNER_BOT_LINKED=true;globalThis.SCANNER_BOT_VIEW={mode:data.mode,snapshots:data.snapshots||[],heartbeat:data.heartbeat,at:Date.now()};if(typeof renderBotMonitor==='function')renderBotMonitor();
    globalThis.SCANNER_RISK=data.risk||null;globalThis.SCANNER_BOT_URL=prefs.url;
