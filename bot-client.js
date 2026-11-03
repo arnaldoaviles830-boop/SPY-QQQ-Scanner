@@ -15,12 +15,12 @@
  async function status(){
   if(!prefs.token||busy)return;busy=true;
   try{const data=await api('/status');
-   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.60 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
+   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.61 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
 
    globalThis.SCANNER_BOT_LINKED=true;globalThis.SCANNER_BOT_VIEW={mode:data.mode,snapshots:data.snapshots||[],heartbeat:data.heartbeat,at:Date.now()};if(typeof renderBotMonitor==='function')renderBotMonitor();
    globalThis.SCANNER_RISK=data.risk||null;globalThis.SCANNER_BOT_URL=prefs.url;
    const hb=data.heartbeat,age=hb?Date.now()-hb.at:Infinity;
-   say(hb?`${age>5*60000?'Servidor sin revisión reciente':'Alertas activadas'} · ${hb.status} · ${new Date(hb.at).toLocaleString('es-PR')}`:'Dispositivo activado; esperando primer ciclo programado.');
+   say(hb?`${age>5*60000?'Servidor sin revisión reciente':'Alertas activadas'} · ${hb.status}${hb.session?.phase?' · '+hb.session.phase:''} · ${new Date(hb.at).toLocaleString('es-PR')}`:'Dispositivo activado; esperando primer ciclo programado.');
    const r=data.risk;$('botCoverage').textContent=r?`${Date.now()-r.at>180000?'LECTURA ATRASADA · ':''}${r.level}. ${r.reasons.join('; ')}. ${r.note}`:'Filtro de noticias y riesgo todavía sin evaluar.';
    const root=$('botFeed');root.replaceChildren();
    if(data.delivery&&!data.delivery.accepted)append(root,'p',`Último envío con error ${data.delivery.status}; revisa la prueba de notificaciones.`,'sub');
