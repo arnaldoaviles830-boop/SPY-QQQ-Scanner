@@ -12,10 +12,37 @@
  const un64=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
  async function serviceWorker(){if(!('serviceWorker'in navigator)||!('PushManager'in window))throw new Error('Notificaciones web no disponibles en este navegador');registration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});await navigator.serviceWorker.ready;return registration}
  function append(parent,tag,text,cls=''){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;parent.append(e);return e}
+
+ const selectedAlert=()=>new URL(location.href).searchParams.get('alert');
+ let signalData=null,signalReadAt=0,signalError='';
+ function renderSentSignals(){
+  const root=$('botSignalsList');root.replaceChildren();
+  if(!signalData){$('botSignalsStatus').textContent=signalError||'Esperando lectura del servidor. Activa las alertas en este dispositivo.';return;}
+  const stale=!!signalError||Date.now()-signalReadAt>45000;
+  $('botSignalsStatus').textContent=stale?'SIN VERIFICAR · '+(signalError||'Lectura atrasada; actualiza el bot.'):'Consulta del servidor: '+new Date(signalReadAt).toLocaleTimeString('es-PR')+' · prima del aviso, antes de costos.';
+  const alerts=signalData.signalAlerts||signalData.alerts?.filter(a=>a.kind==='SENAL'&&a.signal)||[];
+  const sorted=[...alerts].sort((a,b)=>(a.id===selectedAlert()?-1:b.id===selectedAlert()?1:0)||b.at-a.at);
+  if(!sorted.length)append(root,'p','No hay señales enviadas disponibles en el historial del servidor.','sub');
+  for(const a of sorted){const v=a.signal,card=append(root,'article','','bot-item');card.id='signal-'+a.id;
+   const lifecycle=a.lifecycle||{state:'SIN VERIFICAR',reason:'Actualiza también el Worker de alertas para verificar la vigencia.'};
+   const expired=!(v.validUntil>Date.now());
+   const state=stale?'SIN VERIFICAR':lifecycle.state==='ACTIVA'&&expired?'CADUCADA':lifecycle.state;
+   append(card,'b',a.symbol+' · '+state+' · '+v.name);
+   append(card,'p','Emitida '+new Date(a.at).toLocaleString('es-PR')+' · vence '+v.expiry+' · '+v.dte+' DTE','sub');
+   for(const l of v.legs||[])append(card,'p',`${l.role==='long'?'Comprar':'Vender'} ${l.side} ${l.strike}`);
+   append(card,'p',`Prima del aviso $${(v.premium*100).toFixed(2)} · riesgo máximo $${Number(v.risk).toFixed(2)} · ganancia máxima $${Number(v.gain).toFixed(2)}, antes de costos.`,'sub');
+   append(card,'p',stale?'No se puede confirmar la vigencia hasta recuperar la conexión.':state==='CADUCADA'?'Terminó la vigencia de esta recomendación.':lifecycle.reason,'sub');
+   if(a.id===selectedAlert())append(card,'p','Operación del aviso que abriste.','sub');
+  }
+  if(selectedAlert()&&!alerts.some(a=>a.id===selectedAlert()))append(root,'p','El aviso solicitado ya no está disponible o no pertenece a la vigilancia de este dispositivo. El historial se conserva siete días.','sub');
+ }
+ $('botSignalsRefresh').onclick=()=>status();
+ setInterval(renderSentSignals,10000);
+ if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='SCANNER_ALERT')status();});
  async function status(){
   if(!prefs.token||busy)return;busy=true;
-  try{const data=await api('/status');
-   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.64 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
+  try{const data=await api('/status'+(selectedAlert()?'?alert='+encodeURIComponent(selectedAlert()):''));signalData=data;signalReadAt=Date.now();signalError='';renderSentSignals();
+   botMode=data.mode||null;$('botMode').disabled=modeBusy||!botMode;$('botMode').setAttribute('aria-pressed',String(!!botMode?.short));$('botMode').textContent='Modo corto 0–5 días: '+(botMode?.short?'activado':'desactivado');$('botModeInfo').textContent=!botMode?'Actualiza scanner-alertas a V4.65 para cambiar el modo.':(botMode.short?'CORTO 0–5: filtros adicionales de theta, gamma, liquidez y hora reciente de cadena.':'NORMAL 0–45: evaluación habitual.')+' Compartido por todos tus dispositivos. El BOT y Monitoreo vinculado usan este modo; Análisis y Acciones β locales conservan 0–45. Cambiar el modo no modifica operaciones reales ni fuerza señales. Espera el próximo ciclo.';
 
    globalThis.SCANNER_BOT_LINKED=true;globalThis.SCANNER_BOT_VIEW={mode:data.mode,snapshots:data.snapshots||[],heartbeat:data.heartbeat,at:Date.now()};if(typeof renderBotMonitor==='function')renderBotMonitor();
    globalThis.SCANNER_RISK=data.risk||null;globalThis.SCANNER_BOT_URL=prefs.url;
@@ -34,9 +61,9 @@
    if(r?.news){append(root,'h2','Noticias revisadas');append(root,'p',r.news.note,'sub');for(const n of r.news.items.slice(0,10)){const card=append(root,'article','','bot-item'),link=append(card,'a',n.title);try{const u=new URL(n.url);if(u.protocol==='https:'){link.href=u.href;link.target='_blank';link.rel='noopener noreferrer'}}catch{}append(card,'p',(n.category||'INFORMATIVA')+' · '+n.source+' · '+new Date(n.at).toLocaleString('es-PR'),'sub')}}
    // Re-render current analysis after receiving the shared risk gate.
    if(typeof render==='function'&&typeof state!=='undefined'&&state.rows.length)render();
-  }catch(e){globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();$('botMode').disabled=true;globalThis.SCANNER_RISK=null;if(e.status===401){delete prefs.token;delete prefs.id;botMode=null;globalThis.SCANNER_BOT_LINKED=false;save();$('botSetup').open=true;say('Este dispositivo necesita reactivarse. Introduce tu clave de activación y pulsa Activar alertas.');}else say('No se pudo consultar el bot: '+e.message+'. El análisis local sigue disponible; filtro de riesgo sin verificar.')}finally{busy=false}
+  }catch(e){signalError='No se pudo verificar el servidor: '+e.message;renderSentSignals();globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();$('botMode').disabled=true;globalThis.SCANNER_RISK=null;if(e.status===401){delete prefs.token;delete prefs.id;botMode=null;globalThis.SCANNER_BOT_LINKED=false;save();$('botSetup').open=true;say('Este dispositivo necesita reactivarse. Introduce tu clave de activación y pulsa Activar alertas.');}else say('No se pudo consultar el bot: '+e.message+'. El análisis local sigue disponible; filtro de riesgo sin verificar.')}finally{busy=false}
  }
- $('botMode').onclick=async()=>{if(modeBusy||!prefs.token||!botMode)return;modeBusy=true;$('botMode').disabled=true;try{const data=await api('/mode',{short:!botMode.short});botMode=data.mode;say('Modo guardado en el servidor; esperando siguiente ciclo.');globalThis.SCANNER_RISK=null;globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();await status();}catch(e){say('No se confirmó el cambio de modo: '+e.message);}finally{modeBusy=false;$('botMode').disabled=!botMode;}};
+ $('botMode').onclick=async()=>{if(modeBusy||!prefs.token||!botMode)return;modeBusy=true;$('botMode').disabled=true;try{const data=await api('/mode',{short:!botMode.short});botMode=data.mode;signalError='Modo cambiado; actualizando señales.';renderSentSignals();say('Modo guardado en el servidor; esperando siguiente ciclo.');globalThis.SCANNER_RISK=null;globalThis.SCANNER_BOT_VIEW=null;if(typeof renderBotMonitor==='function')renderBotMonitor();await status();}catch(e){say('No se confirmó el cambio de modo: '+e.message);}finally{modeBusy=false;$('botMode').disabled=!botMode;}};
  $('botSave').onclick=()=>{try{const url=base();if(prefs.url&&url!==prefs.url&&prefs.token)throw new Error('Desactiva las alertas antes de cambiar de servidor');prefs.url=url;save();say('Dirección guardada. Abre la app desde Inicio y pulsa Activar alertas.')}catch(e){say(e.message)}};
  $('botEnable').onclick=async()=>{
   const button=$('botEnable');button.disabled=true;
@@ -53,9 +80,9 @@
  };
  $('botVixCheck').onclick=async()=>{const b=$('botVixCheck');b.disabled=true;try{if(!prefs.token)throw new Error('Activa primero las alertas en este dispositivo');$('botVixStatus').textContent='Verificando VIX desde Cloudflare…';const data=await api('/vix-check',{}),v=data.vix;$('botVixStatus').textContent=v.verified?`VIX válido ${v.price.toFixed(2)} · ${v.source}${v.fromCache?' · última lectura guardada':''} · hora de mercado ${new Date(v.at).toLocaleString('es-PR')}. La pausa general se revisa en el próximo ciclo.`:`VIX sin validar: ${v.reason}. Se mantiene pausa de entradas.`;}catch(e){$('botVixStatus').textContent='No se pudo verificar: '+e.message}finally{b.disabled=false}};
  $('botTest').onclick=async()=>{try{if(!prefs.token)throw new Error('Activa primero las alertas');await api('/test',{});say('Prueba aceptada por el servicio push. Comprueba la notificación en el iPhone.')}catch(e){say(e.message)}};
- $('botDisable').onclick=async()=>{try{if(prefs.token)await api('/unsubscribe',{});const reg=await navigator.serviceWorker?.getRegistration('./'),sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();delete prefs.token;delete prefs.id;botMode=null;globalThis.SCANNER_BOT_LINKED=false;globalThis.SCANNER_BOT_VIEW=null;$('botMode').disabled=true;save();globalThis.SCANNER_RISK=null;say('Alertas desactivadas en este dispositivo.')}catch(e){say('No se confirmó la desactivación: '+e.message)}};
+ $('botDisable').onclick=async()=>{try{if(prefs.token)await api('/unsubscribe',{});const reg=await navigator.serviceWorker?.getRegistration('./'),sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();delete prefs.token;delete prefs.id;botMode=null;globalThis.SCANNER_BOT_LINKED=false;globalThis.SCANNER_BOT_VIEW=null;$('botMode').disabled=true;save();signalData=null;signalError='Alertas desactivadas en este dispositivo.';renderSentSignals();globalThis.SCANNER_RISK=null;say('Alertas desactivadas en este dispositivo.')}catch(e){say('No se confirmó la desactivación: '+e.message)}};
  $('botWatch').onclick=async()=>{try{const selected=watch();if(!prefs.token)throw new Error('Activa primero las alertas');await api('/watch',{symbols:selected});prefs.symbols=selected;save();say('Lista de vigilancia guardada en el bot');await status()}catch(e){say(e.message)}};
  globalThis.SCANNER_REFRESH_BOT=status;
  if(prefs.token)status();else $('botSetup').open=true;
- setInterval(()=>{if(!document.hidden)status()},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)status()});
+ setInterval(()=>{if(!document.hidden)status()},15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)status()});
 })();
