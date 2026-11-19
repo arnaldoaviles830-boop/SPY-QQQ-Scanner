@@ -14,6 +14,8 @@
  function append(parent,tag,text,cls=''){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;parent.append(e);return e}
 
  const selectedAlert=()=>new URL(location.href).searchParams.get('alert');
+ const historyDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Puerto_Rico',year:'numeric',month:'2-digit',day:'2-digit'});
+ const historyLabel=new Intl.DateTimeFormat('es-PR',{timeZone:'America/Puerto_Rico',dateStyle:'long'});
  let signalData=null,signalReadAt=0,signalError='';
  function renderSentSignals(){
   const root=$('botSignalsList');root.replaceChildren();
@@ -21,20 +23,25 @@
   const stale=!!signalError||Date.now()-signalReadAt>45000;
   $('botSignalsStatus').textContent=stale?'SIN VERIFICAR · '+(signalError||'Lectura atrasada; actualiza el bot.'):'Consulta del servidor: '+new Date(signalReadAt).toLocaleTimeString('es-PR')+' · prima del aviso, antes de costos.';
   const alerts=signalData.signalAlerts||signalData.alerts?.filter(a=>a.kind==='SENAL'&&a.signal)||[];
-  const sorted=[...alerts].sort((a,b)=>(a.id===selectedAlert()?-1:b.id===selectedAlert()?1:0)||b.at-a.at);
-  if(!sorted.length)append(root,'p','No hay señales enviadas disponibles en el historial del servidor.','sub');
-  for(const a of sorted){const v=a.signal,card=append(root,'article','','bot-item');card.id='signal-'+a.id;
+  const today=historyDate.format(Date.now());
+  const entries=alerts.filter(a=>Number.isFinite(a.at)&&historyDate.format(a.at)===today).sort((a,b)=>b.at-a.at);
+  const group=append(root,'section','','bot-day');
+  append(group,'h3','Hoy · '+historyLabel.format(Date.now())+' · '+entries.length+' señal(es)');
+  if(!entries.length)append(group,'p','No hay señales de hoy en el historial del servidor.','sub');
+  for(const a of entries){
+   const v=a.signal,card=append(group,'article','','bot-item');
+   card.id='signal-'+a.id;
    const lifecycle=a.lifecycle||{state:'SIN VERIFICAR',reason:'Actualiza también el Worker de alertas para verificar la vigencia.'};
    const expired=!(v.validUntil>Date.now());
    const state=stale?'SIN VERIFICAR':lifecycle.state==='ACTIVA'&&expired?'CADUCADA':lifecycle.state;
    append(card,'b',a.symbol+' · '+state+' · '+v.name);
-   append(card,'p','Emitida '+new Date(a.at).toLocaleString('es-PR')+' · vence '+v.expiry+' · '+v.dte+' DTE','sub');
+   append(card,'p','Emitida '+new Date(a.at).toLocaleString('es-PR',{timeZone:'America/Puerto_Rico'})+' · vence '+v.expiry+' · '+v.dte+' DTE','sub');
    for(const l of v.legs||[])append(card,'p',`${l.role==='long'?'Comprar':'Vender'} ${l.side} ${l.strike}`);
    append(card,'p',`Prima del aviso $${(v.premium*100).toFixed(2)} · riesgo máximo $${Number(v.risk).toFixed(2)} · ganancia máxima $${Number(v.gain).toFixed(2)}, antes de costos.`,'sub');
    append(card,'p',stale?'No se puede confirmar la vigencia hasta recuperar la conexión.':state==='CADUCADA'?'Terminó la vigencia de esta recomendación.':lifecycle.reason,'sub');
    if(a.id===selectedAlert())append(card,'p','Operación del aviso que abriste.','sub');
   }
-  if(selectedAlert()&&!alerts.some(a=>a.id===selectedAlert()))append(root,'p','El aviso solicitado ya no está disponible o no pertenece a la vigilancia de este dispositivo. El historial se conserva siete días.','sub');
+  if(selectedAlert()&&!entries.some(a=>a.id===selectedAlert()))append(root,'p','El aviso solicitado no está en el historial de hoy.','sub');
  }
  $('botSignalsRefresh').onclick=()=>status();
  setInterval(renderSentSignals,10000);
